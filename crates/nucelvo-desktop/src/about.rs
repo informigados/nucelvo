@@ -6,6 +6,10 @@ use slint::{ComponentHandle, SharedString};
 
 use crate::MainWindow;
 
+#[cfg(all(windows, target_arch = "x86_64"))]
+#[path = "update_windows.rs"]
+mod update_windows;
+
 const REPOSITORY: &str = "https://github.com/informigados/nucelvo";
 const RELEASES_API: &str = "https://api.github.com/repos/informigados/nucelvo/releases?per_page=20";
 const RESPONSE_LIMIT: u64 = 512 * 1024;
@@ -16,6 +20,15 @@ struct Release {
     tag_name: String,
     draft: bool,
     prerelease: bool,
+    #[cfg(all(windows, target_arch = "x86_64"))]
+    #[serde(default)]
+    assets: Vec<update_windows::Asset>,
+}
+
+struct Offer {
+    version: Version,
+    #[cfg(all(windows, target_arch = "x86_64"))]
+    installer: Option<update_windows::Installer>,
 }
 
 fn newer_release(releases: &[Release], current: &Version) -> (bool, Option<Version>) {
@@ -33,7 +46,7 @@ fn newer_release(releases: &[Release], current: &Version) -> (bool, Option<Versi
     )
 }
 
-fn check() -> Result<Option<Version>, ()> {
+fn check() -> Result<Option<Offer>, ()> {
     let response = reqwest::blocking::Client::builder()
         .https_only(true)
         .redirect(reqwest::redirect::Policy::none())
@@ -60,7 +73,24 @@ fn check() -> Result<Option<Version>, ()> {
     let releases: Vec<Release> = serde_json::from_slice(&data).map_err(|_| ())?;
     let current = Version::parse(CURRENT).map_err(|_| ())?;
     let (found, newer) = newer_release(&releases, &current);
-    found.then_some(newer).ok_or(())
+    found
+        .then(|| {
+            newer.map(|version| {
+                #[cfg(all(windows, target_arch = "x86_64"))]
+                let installer = releases
+                    .iter()
+                    .find(|release| !release.draft && release.tag_name == format!("v{version}"))
+                    .and_then(|release| {
+                        update_windows::Installer::from_assets(&version, &release.assets)
+                    });
+                Offer {
+                    version,
+                    #[cfg(all(windows, target_arch = "x86_64"))]
+                    installer,
+                }
+            })
+        })
+        .ok_or(())
 }
 
 pub fn bind(window: &MainWindow) {
@@ -70,22 +100,37 @@ pub fn bind(window: &MainWindow) {
             .to_string()
             .into(),
     );
+    #[cfg(all(windows, target_arch = "x86_64"))]
+    let updater = update_windows::bind(window);
     let weak = window.as_weak();
     window.on_check_updates(move || {
         let Some(window) = weak.upgrade() else { return };
-        if window.get_update_state() == 1 {
+        if window.get_update_state() == 1 || matches!(window.get_update_download_state(), 1 | 3) {
             return;
         }
+        window.set_update_download_state(0);
+        window.set_update_installable(false);
+        #[cfg(all(windows, target_arch = "x86_64"))]
+        updater.lock().unwrap().clear();
         window.set_update_state(1);
         window.set_update_version(SharedString::default());
         let weak = window.as_weak();
+        #[cfg(all(windows, target_arch = "x86_64"))]
+        let updater = updater.clone();
         if thread::Builder::new()
             .name("check-updates".into())
             .spawn(move || {
                 let outcome = check();
                 let _ = weak.upgrade_in_event_loop(move |window| match outcome {
-                    Ok(Some(version)) => {
-                        window.set_update_version(version.to_string().into());
+                    Ok(Some(offer)) => {
+                        window.set_update_version(offer.version.to_string().into());
+                        #[cfg(all(windows, target_arch = "x86_64"))]
+                        if let Some(installer) = offer.installer
+                            && update_windows::is_installed()
+                        {
+                            updater.lock().unwrap().offer(installer);
+                            window.set_update_installable(true);
+                        }
                         window.set_update_state(3);
                     }
                     Ok(None) => window.set_update_state(2),

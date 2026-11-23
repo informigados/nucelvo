@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.1 · Windows Update Preview
+
+- Adds an opt-in update flow in About for installed Windows x64 copies. Nucelvo downloads the official setup, checks the exact size and SHA-256, and opens it through Windows Attachment Manager after confirmation.
+- Keeps the GitHub release link available for portable copies, other platforms, and releases without a verifiable installer.
+- Documents SmartScreen reputation prompts and Windows installer verification.
+
 ## 0.7.0 · Memory Diagnostics and Hardware Detail Preview
 
 - Adds a Memory diagnostics section that displays the latest recorded Windows memory test result or the Linux EDAC error counters when available.

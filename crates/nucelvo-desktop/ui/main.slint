@@ -202,6 +202,8 @@ export component MainWindow inherits Window {
     in property <string> app-version;
     in property <string> copyright-year;
     in property <int> update-state;
+    in property <int> update-download-state;
+    in property <bool> update-installable;
     in property <string> update-version;
     in property <bool> about-link-failed;
     out property <string> about-title: @tr("About");
@@ -251,6 +253,8 @@ export component MainWindow inherits Window {
     callback change-preview-page(int);
     callback open-folder();
     callback check-updates();
+    callback download-update();
+    callback install-update();
     callback about-link(int);
 
     FocusScope {
@@ -797,7 +801,7 @@ export component MainWindow inherits Window {
                                 ActionButton {
                                     icon: @image-url("icons/refresh.svg");
                                     text: root.update-state == 1 ? @tr("Checking for updates…") : @tr("Check for updates");
-                                    enabled: root.update-state != 1;
+                                    enabled: root.update-state != 1 && root.update-download-state != 1 && root.update-download-state != 3;
                                     clicked => { root.check-updates(); }
                                 }
                                 if root.update-state == 3 : ActionButton {
@@ -813,6 +817,31 @@ export component MainWindow inherits Window {
                                 text: root.update-state == 2 ? @tr("No newer version was found.") :
                                     root.update-state == 3 ? @tr("Version {} is available.", root.update-version) :
                                     @tr("Could not check for updates. Check your connection and try again.");
+                            }
+                            if root.update-installable : VerticalLayout {
+                                spacing: 8px;
+                                HorizontalLayout {
+                                    if root.update-download-state == 0 || root.update-download-state == 4 : ActionButton {
+                                        icon: @image-url("icons/refresh.svg");
+                                        text: @tr("Update now");
+                                        clicked => { root.download-update(); }
+                                    }
+                                    if root.update-download-state == 2 : ActionButton {
+                                        icon: @image-url("icons/refresh.svg");
+                                        text: @tr("Install update and close Nucelvo");
+                                        enabled: !root.export-busy;
+                                        clicked => { root.install-update(); }
+                                    }
+                                    Rectangle { horizontal-stretch: 1; }
+                                }
+                                if root.update-download-state > 0 : Text {
+                                    color: root.update-download-state == 4 ? root.metric-colors[3] : root.muted;
+                                    wrap: word-wrap;
+                                    text: root.update-download-state == 1 ? @tr("Downloading and verifying the installer…") :
+                                        root.update-download-state == 2 ? @tr("The installer matches the SHA-256 published by GitHub.") :
+                                        root.update-download-state == 3 ? @tr("Waiting for Windows to open the installer…") :
+                                        @tr("The update could not be downloaded, verified, or opened. You can retry or visit GitHub.");
+                                }
                             }
                             Rectangle { height: 1px; background: root.line; }
                             Text { text: @tr("Authors"); color: root.ink; font-weight: 700; }

@@ -334,6 +334,30 @@ msgid "No newer version was found."
 msgstr "Nenhuma versão mais recente foi encontrada."
 
 msgctxt "MainWindow"
+msgid "Update now"
+msgstr "Atualizar agora"
+
+msgctxt "MainWindow"
+msgid "Install update and close Nucelvo"
+msgstr "Instalar atualização e fechar o Nucelvo"
+
+msgctxt "MainWindow"
+msgid "Downloading and verifying the installer…"
+msgstr "Baixando e verificando o instalador…"
+
+msgctxt "MainWindow"
+msgid "The installer matches the SHA-256 published by GitHub."
+msgstr "O instalador corresponde ao SHA-256 publicado pelo GitHub."
+
+msgctxt "MainWindow"
+msgid "Waiting for Windows to open the installer…"
+msgstr "Aguardando o Windows abrir o instalador…"
+
+msgctxt "MainWindow"
+msgid "The update could not be downloaded, verified, or opened. You can retry or visit GitHub."
+msgstr "Não foi possível baixar, verificar ou abrir a atualização. Você pode tentar novamente ou acessar o GitHub."
+
+msgctxt "MainWindow"
 msgid "Version {} is available."
 msgstr "A versão {} está disponível."
 

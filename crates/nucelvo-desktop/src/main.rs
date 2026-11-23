@@ -726,7 +726,7 @@ fn bind_export(window: &MainWindow, app: &Rc<RefCell<App>>) {
         let Some((report, format)) = data.borrow().report.clone() else {
             return;
         };
-        if window.get_export_busy() {
+        if window.get_export_busy() || window.get_update_download_state() == 3 {
             return;
         }
         window.set_export_busy(true);
@@ -884,10 +884,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     about::bind(&window);
     let closing_window = window.as_weak();
     window.window().on_close_requested(move || {
-        if closing_window
-            .upgrade()
-            .is_some_and(|window| window.get_export_busy())
-        {
+        if closing_window.upgrade().is_some_and(|window| {
+            window.get_export_busy() || window.get_update_download_state() == 3
+        }) {
             slint::CloseRequestResponse::KeepWindowShown
         } else {
             slint::CloseRequestResponse::HideWindow

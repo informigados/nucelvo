@@ -11,7 +11,23 @@ Free, open-source hardware inventory and live sensor monitoring for Windows and 
 
 ## ⬇️ Download for Windows
 
-The [GitHub release](https://github.com/informigados/nucelvo/releases/tag/v0.7.0) includes a Windows x64 installer, a portable ZIP, and SHA-256 checksums. The installer runs for the current user. To use the portable edition, extract the ZIP and open `nucelvo.exe`.
+The [GitHub release](https://github.com/informigados/nucelvo/releases/tag/v0.7.1) includes a Windows x64 installer, a portable ZIP, and SHA-256 checksums. The installer runs for the current user. To use the portable edition, extract the ZIP and open `nucelvo.exe`.
+
+### Microsoft Defender SmartScreen
+
+The Windows installer is unsigned, so Microsoft Edge may warn that the download is uncommon or unrecognized. Download it from the [official GitHub release](https://github.com/informigados/nucelvo/releases/tag/v0.7.1) and compare its SHA-256 with the attached `SHA256SUMS` before running it.
+
+If Edge displays an **unrecognized download** warning and you choose to keep the official installer, open the download item's **…** menu, select **Keep**, then select **Keep anyway** under **Show more** if Edge displays that option. Leave SmartScreen enabled and follow any malware warning or organization policy. [Microsoft Edge SmartScreen documentation](https://learn.microsoft.com/en-us/deployedge/microsoft-edge-security-smartscreen)
+
+In PowerShell, run the following from the folder containing the installer:
+
+```powershell
+Get-FileHash .\nucelvo-0.7.1-windows-x64-setup.exe -Algorithm SHA256
+```
+
+Matching the release checksum confirms that your download matches the published file.
+
+See the [VirusTotal analysis for the 0.7.1 installer](https://www.virustotal.com/gui/file/609abee271e4df8f9aab031c054b3a9f927f5e2079497aa31e346a3188a60f1b). The link is tied to the exact SHA-256 of the published installer.
 
 ## 🖥️ What you can do
 
@@ -21,7 +37,7 @@ The [GitHub release](https://github.com/informigados/nucelvo/releases/tag/v0.7.0
 - On supported NVIDIA cards in Windows, monitor GPU temperature, usage, VRAM usage, fan speed, power, and clock frequencies from the installed driver. Use the Frequencies filter to find supported CPU and GPU clocks.
 - Check drive alerts, power-on hours, SSD endurance used, and other storage health readings when available. The System tab also shows power and battery information.
 - Review physical network adapters, negotiated link speed, and cumulative traffic in System. On Windows, System also shows active displays and their current settings.
-- Check for new GitHub releases on demand from About.
+- Check for new releases from About. On installed Windows x64 copies, select **Update now** to download and verify an eligible installer, then select **Install update and close Nucelvo** to open the installer.
 - See live receive and send rates under System. Select a rate to open its history, or choose Network in Sensors to view and export readings.
 - Preview and save reports as JSON, TXT, CSV, or standalone HTML. Share-safe reports omit serial numbers, volume names, and volume paths by default.
 - Run offline without an account. The interface opens in English and follows the system theme until you choose light or dark. The language menu also offers Brazilian Portuguese.
