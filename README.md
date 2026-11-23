@@ -13,21 +13,31 @@ Free, open-source hardware inventory and live sensor monitoring for Windows and 
 
 The [GitHub release](https://github.com/informigados/nucelvo/releases/tag/v0.7.1) includes a Windows x64 installer, a portable ZIP, and SHA-256 checksums. The installer runs for the current user. To use the portable edition, extract the ZIP and open `nucelvo.exe`.
 
-### Microsoft Defender SmartScreen
+### 🔍 Verify the Windows installer
 
-The Windows installer is unsigned, so Microsoft Edge may warn that the download is uncommon or unrecognized. Download it from the [official GitHub release](https://github.com/informigados/nucelvo/releases/tag/v0.7.1) and compare its SHA-256 with the attached `SHA256SUMS` before running it.
-
-If Edge displays an **unrecognized download** warning and you choose to keep the official installer, open the download item's **…** menu, select **Keep**, then select **Keep anyway** under **Show more** if Edge displays that option. Leave SmartScreen enabled and follow any malware warning or organization policy. [Microsoft Edge SmartScreen documentation](https://learn.microsoft.com/en-us/deployedge/microsoft-edge-security-smartscreen)
-
-In PowerShell, run the following from the folder containing the installer:
+Download the installer from the [official GitHub release](https://github.com/informigados/nucelvo/releases/tag/v0.7.1). In PowerShell, run this command from the download folder and compare the output with `SHA256SUMS` attached to the release.
 
 ```powershell
 Get-FileHash .\nucelvo-0.7.1-windows-x64-setup.exe -Algorithm SHA256
 ```
 
-Matching the release checksum confirms that your download matches the published file.
+For the **0.7.1 Windows x64 installer**, the published SHA-256 is `609abee271e4df8f9aab031c054b3a9f927f5e2079497aa31e346a3188a60f1b`.
 
-The VirusTotal report for the 0.7.1 installer recorded two detections, 65 engines with no detection, and three engines that did not support the file type. The detections remain unconfirmed. Review the report for the exact SHA-256 of the published installer. [VirusTotal analysis](https://www.virustotal.com/gui/file/609abee271e4df8f9aab031c054b3a9f927f5e2079497aa31e346a3188a60f1b)
+### 🛡️ Third-party analysis
+
+| Service | Report |
+| --- | --- |
+| VirusTotal | The recorded scan showed 2 detections, 65 engines with no detection, and 3 engines that did not support the file type. The detections remain unconfirmed. [View VirusTotal report](https://www.virustotal.com/gui/file/609abee271e4df8f9aab031c054b3a9f927f5e2079497aa31e346a3188a60f1b) |
+| Hybrid Analysis | The sample summary showed a threat score of 0/100, 0 of 27 antivirus engines flagging the file, and 11 suspicious behavioral indicators. [View Hybrid Analysis report](https://hybrid-analysis.com/sample/609abee271e4df8f9aab031c054b3a9f927f5e2079497aa31e346a3188a60f1b) |
+| MetaDefender Cloud | The report page showed a maintenance notice during review. When it becomes available, compare the SHA-256 displayed there with the installer hash above. [View MetaDefender Cloud report](https://metadefender.com/results/file/bzI2MTEyMzVpaVpJdXQ2dHBiUGNQT2RiZ0xI_mdaas/overview) |
+
+These services use different engines, rules, and test environments, and results can change over time. A checksum confirms file identity. Scan results describe what a service observed for that file.
+
+Nucelvo Setup installs files for the current user, creates an uninstaller and shortcuts, and adds an entry to Windows Installed Apps. These operations account for some of the observed file and registry activity. Other indicators require individual review. [Windows installer source](packaging/windows/Nucelvo.nsi)
+
+### Microsoft Defender SmartScreen
+
+The Windows installer is unsigned. Microsoft Edge may show a reputation warning if the file is uncommon or unrecognized. If you choose to keep the official installer after checking its source and SHA-256, open the download item's **…** menu, select **Keep**, and select **Keep anyway** under **Show more** if that option is available. Leave SmartScreen enabled and follow any malware warning or organization policy. [Microsoft Edge SmartScreen documentation](https://learn.microsoft.com/en-us/deployedge/microsoft-edge-security-smartscreen)
 
 ## 🖥️ What you can do
 
