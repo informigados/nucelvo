@@ -29,7 +29,7 @@ For the **0.7.1 Windows x64 installer**, the published SHA-256 is `609abee271e4d
 | --- | --- |
 | VirusTotal | The recorded scan showed 2 detections, 65 engines with no detection, and 3 engines that did not support the file type. The detections remain unconfirmed. [View VirusTotal report](https://www.virustotal.com/gui/file/609abee271e4df8f9aab031c054b3a9f927f5e2079497aa31e346a3188a60f1b) |
 | Hybrid Analysis | The sample summary showed a threat score of 0/100, 0 of 27 antivirus engines flagging the file, and 11 suspicious behavioral indicators. [View Hybrid Analysis report](https://hybrid-analysis.com/sample/609abee271e4df8f9aab031c054b3a9f927f5e2079497aa31e346a3188a60f1b) |
-| MetaDefender Cloud | The report page showed a maintenance notice during review. When it becomes available, compare the SHA-256 displayed there with the installer hash above. [View MetaDefender Cloud report](https://metadefender.com/results/file/bzI2MTEyMzVpaVpJdXQ2dHBiUGNQT2RiZ0xI_mdaas/overview) |
+| MetaDefender Cloud | MetaScan flagged the installer in 1 of 21 engines. Webroot SMD reported `Malware_51.4`, and Adaptive Sandbox rated the installer **Suspicious**. The archive view also flagged the bundled NSIS language-selection plug-in, `LangDLL.dll`. [View MetaDefender Cloud report](https://metadefender.com/results/file/bzI2MTEyMzVpaVpJdXQ2dHBiUGNQT2RiZ0xI_mdaas/overview) |
 
 These services use different engines, rules, and test environments, and results can change over time. A checksum confirms file identity. Scan results describe what a service observed for that file.
 
