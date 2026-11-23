@@ -1,0 +1,15 @@
+[workspace]
+members = ["crates/nucelvo-core", "crates/nucelvo-collect", "crates/nucelvo-report", "crates/nucelvo-desktop"]
+default-members = ["crates/nucelvo-desktop"]
+resolver = "3"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0"
+
+[workspace.dependencies]
+nucelvo-core = { path = "crates/nucelvo-core" }
+nucelvo-collect = { path = "crates/nucelvo-collect" }
+serde = { version = "1", features = ["derive"] }
+chrono = { version = "0.4", default-features = false, features = ["clock", "std", "serde"] }

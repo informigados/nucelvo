@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="288" height="64" viewBox="0 0 288 64" role="img" aria-labelledby="title">
+  <title id="title">Nucelvo</title>
+  <rect x="2" y="2" width="60" height="60" rx="14" fill="#08604E" stroke="#6DCBB3" stroke-width="2"/>
+  <path d="M17 42h7V22h-7zm23 0h7V22h-7z" fill="#F2FFF9"/>
+  <path d="M24 26h7l9 12h-7z" fill="#8AF2CE"/>
+  <path d="M26 16h12m-12 32h12" fill="none" stroke="#8AF2CE" stroke-width="2" stroke-linecap="round"/>
+  <g fill="none" stroke="#182D28" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M83 46V18l20 28V18"/>
+    <path d="M118 27v11a8 8 0 0 0 16 0V27m0 11v8"/>
+    <path d="M164 29a10 10 0 1 0 0 15"/>
+    <path d="M175 36h18a9 9 0 1 0-2 7.5"/>
+    <path d="M206 18v28"/>
+    <path d="m219 27 9 19 9-19"/>
+    <path d="M269 36.5a10 10 0 1 1-20 0 10 10 0 1 1 20 0z"/>
+  </g>
+</svg>

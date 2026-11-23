@@ -1,0 +1,54 @@
+name: Desktop validation
+on: [push, pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2022, ubuntu-24.04]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Install pinned Rust toolchain
+        run: rustup show
+      - name: Install Linux desktop test dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libfontconfig1-dev libxkbcommon-dev libxkbcommon-x11-0 xvfb xauth weston dbus
+      - run: cargo fmt --all -- --check
+      - name: Check the Brazilian Portuguese catalog
+        if: runner.os == 'Linux'
+        run: python3 scripts/check-translations.py
+      - run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      - run: cargo test --workspace --locked
+      - run: cargo build --locked
+      - name: Windows UI smoke test
+        if: runner.os == 'Windows'
+        run: .\target\debug\nucelvo.exe --smoke-test --require-logical-cpu
+      - name: Linux X11 UI smoke test
+        if: runner.os == 'Linux'
+        run: env -u WAYLAND_DISPLAY -u WAYLAND_SOCKET xvfb-run -a timeout 45s target/debug/nucelvo --smoke-test --require-logical-cpu
+      - name: Linux Wayland UI smoke test
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          env -u DISPLAY -u WAYLAND_SOCKET dbus-run-session -- bash -euo pipefail <<'WAYLAND_TEST'
+          export XDG_RUNTIME_DIR="$(mktemp -d)"
+          export WAYLAND_DISPLAY=nucelvo-ci
+          weston --backend=headless --renderer=pixman --width=1280 --height=800 --socket="$WAYLAND_DISPLAY" --idle-time=0 --no-config --log="$XDG_RUNTIME_DIR/weston.log" &
+          compositor=$!
+          trap 'cat "$XDG_RUNTIME_DIR/weston.log" || true; kill "$compositor" 2>/dev/null || true' EXIT
+          for attempt in {1..50}; do
+            [[ -S "$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY" ]] && break
+            kill -0 "$compositor"
+            sleep 0.1
+          done
+          test -S "$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY"
+          timeout 45s target/debug/nucelvo --smoke-test --require-logical-cpu
+          WAYLAND_TEST

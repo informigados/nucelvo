@@ -1,0 +1,559 @@
+﻿import { Button, CheckBox, ComboBox, LineEdit, ListView, Palette, ScrollView } from "std-widgets.slint";
+
+export struct Row {
+    label: string,
+    value: string,
+    detail: string,
+    group: string,
+    copyable: bool,
+}
+
+component NavItem inherits Rectangle {
+    in property <string> label;
+    in property <bool> active;
+    in property <color> accent;
+    in property <color> selection;
+    callback activated();
+    height: 36px;
+    border-radius: 6px;
+    border-width: keyboard.has-focus ? 1px : 0px;
+    border-color: root.accent;
+    background: active || mouse.has-hover ? selection : transparent;
+    in property <color> ink;
+    accessible-role: button;
+    accessible-label: root.label;
+    accessible-action-default => { root.activated(); }
+    forward-focus: keyboard;
+    keyboard := FocusScope {
+        key-pressed(event) => {
+            if (event.text == Key.Return || event.text == " ") {
+                root.activated();
+                return accept;
+            }
+            return reject;
+        }
+    }
+    if root.active : Rectangle {
+        x: 0px;
+        width: 3px;
+        height: 18px;
+        border-radius: 2px;
+        background: root.accent;
+    }
+    Text {
+        x: 12px;
+        width: parent.width - 20px;
+        height: parent.height;
+        text: root.label;
+        color: root.active ? root.accent : root.ink;
+        font-size: 13px;
+        font-weight: root.active ? 700 : 500;
+        vertical-alignment: center;
+        overflow: elide;
+        accessible-role: none;
+    }
+    mouse := TouchArea {
+        clicked => { keyboard.focus(); root.activated(); }
+    }
+}
+
+export component MainWindow inherits Window {
+    title: "Nucelvo";
+    icon: @image-url("../../../assets/brand/nucelvo-icon.svg");
+    preferred-width: 1050px;
+    preferred-height: 690px;
+    min-width: 680px;
+    min-height: 480px;
+    default-font-size: 14px;
+
+    in property <bool> portuguese;
+    in property <bool> save-failed;
+    in property <int> page;
+    in property <bool> ready;
+    in property <bool> refreshing;
+    in property <bool> paused;
+    in property <string> capture-time;
+    in property <[Row]> rows;
+    in property <[string]> metric-options;
+    in property <int> metric-index: -1;
+    in property <string> current-value: "—";
+    in property <string> cpu-value: "—";
+    in property <string> low-value: "—";
+    in property <string> high-value: "—";
+    in property <string> average-value: "—";
+    in property <string> metric-detail;
+    in property <string> graph;
+    in property <string> axis-low;
+    in property <string> axis-high;
+    in property <bool> has-graph;
+    in property <int> range-index;
+    in property <[Row]> preview;
+    in property <int> preview-count;
+    in property <int> preview-page;
+    in property <bool> export-busy;
+    in property <bool> export-prepared;
+    in property <int> export-default-scope;
+    in-out property <int> export-category;
+    in-out property <bool> share-safe-category: true;
+    in property <bool> folder-ready;
+    in property <int> notice;
+    in property <string> notice-detail;
+
+    out property <string> overview-title: @tr("Overview");
+    private property <[string]> inventory-tabs: [
+        @tr("Overview"), "CPU", @tr("Memory"), @tr("Motherboard"),
+        @tr("Graphics"), @tr("Storage"), @tr("System"), @tr("Sensors"), @tr("Export")
+    ];
+    private property <[string]> times: [@tr("Last minute"), @tr("Last 5 minutes"), @tr("Last 15 minutes")];
+    private property <[string]> export-scopes: [@tr("Full inventory"), @tr("One category"), @tr("Current sensor readings"), @tr("Sensor history · 5 minutes"), @tr("Sensor history · 15 minutes")];
+    in property <bool> narrow;
+    private property <bool> dark: Palette.color-scheme == ColorScheme.dark;
+    private property <color> ink: dark ? #edf6f2 : #192e28;
+    private property <color> muted: dark ? #a9c1b8 : #456159;
+    private property <color> line: dark ? #344941 : #c6d8d0;
+    private property <color> surface: dark ? #14221f : #f7faf8;
+    private property <color> rail: dark ? #182923 : #edf5f0;
+    private property <color> raised: dark ? #1a3029 : #e7f3ec;
+    private property <color> accent: dark ? #86e9c4 : #08604e;
+    background: surface;
+
+    callback navigate(int);
+    callback language-selected(int);
+    callback refresh();
+    callback search(string);
+    callback copy(string);
+    callback pause();
+    callback metric(int);
+    callback range-changed(int);
+    callback metric-filter(string);
+    callback prepare-export(int, int, bool, int);
+    callback invalidate-export();
+    callback save-export();
+    callback change-preview-page(int);
+    callback open-folder();
+
+    FocusScope {
+        key-pressed(event) => {
+            if (event.modifiers.control && (event.text == "f" || event.text == "F") && root.page < 8) {
+                if (root.page == 7) { metric-search.focus(); }
+                else { field-search.focus(); }
+                return accept;
+            }
+            return reject;
+        }
+
+        VerticalLayout {
+            Rectangle {
+                height: 64px;
+                background: root.rail;
+                HorizontalLayout {
+                    padding-left: 20px;
+                    padding-right: 20px;
+                    spacing: 12px;
+                    VerticalLayout {
+                        width: 171px;
+                        alignment: center;
+                        Image {
+                            source: root.dark ? @image-url("../../../assets/brand/nucelvo-logo-dark.svg")
+                                              : @image-url("../../../assets/brand/nucelvo-logo-light.svg");
+                            image-fit: contain;
+                            height: 38px;
+                            accessible-label: "Nucelvo";
+                        }
+                    }
+                    Rectangle { horizontal-stretch: 1; }
+                    if root.narrow : VerticalLayout {
+                        width: 158px;
+                        alignment: center;
+                        ComboBox {
+                            height: 34px;
+                            accessible-label: @tr("Navigation");
+                            model: root.inventory-tabs;
+                            current-index: root.page;
+                            selected(_) => { root.navigate(self.current-index); }
+                        }
+                    }
+                    VerticalLayout {
+                        width: 170px;
+                        alignment: center;
+                        ComboBox {
+                            height: 34px;
+                            accessible-label: @tr("Language");
+                            model: ["English", "Português (Brasil)"];
+                            current-index: root.portuguese ? 1 : 0;
+                            selected(_) => { root.language-selected(self.current-index); }
+                        }
+                    }
+                }
+            }
+            Rectangle { height: 1px; background: root.line; }
+            HorizontalLayout {
+                spacing: 0px;
+                if !root.narrow : Rectangle {
+                    width: 152px;
+                    background: root.rail;
+                    VerticalLayout {
+                        padding: 12px;
+                        spacing: 6px;
+                        alignment: start;
+                        for title[index] in root.inventory-tabs : NavItem {
+                            label: title;
+                            active: index == root.page;
+                            accent: root.accent;
+                            selection: root.raised;
+                            ink: root.ink;
+                            activated => { root.navigate(index); }
+                        }
+                    }
+                    Rectangle { x: parent.width - 1px; width: 1px; background: root.line; }
+                }
+
+                VerticalLayout {
+                    horizontal-stretch: 1;
+                    padding: 20px;
+                    spacing: 12px;
+                    HorizontalLayout {
+                        spacing: 10px;
+                        min-height: 40px;
+                        Text {
+                            text: root.inventory-tabs[root.page];
+                            color: root.ink;
+                            font-size: 28px;
+                            font-weight: 700;
+                            vertical-alignment: center;
+                            horizontal-stretch: 1;
+                            overflow: elide;
+                        }
+                        if root.page < 7 : Button {
+                            text: root.refreshing ? @tr("Refreshing…") : @tr("Refresh inventory");
+                            enabled: !root.refreshing;
+                            clicked => { root.refresh(); }
+                        }
+                        if root.page == 7 : Button {
+                            text: root.paused ? @tr("Resume") : @tr("Pause");
+                            clicked => { root.pause(); }
+                        }
+                        if root.page != 8 : Button {
+                            text: @tr("Export");
+                            clicked => { root.navigate(8); }
+                        }
+                    }
+
+                    if root.notice != 0 || root.save-failed : HorizontalLayout {
+                        spacing: 8px;
+                        Text {
+                            horizontal-stretch: 1;
+                            wrap: word-wrap;
+                            color: root.ink;
+                            text: root.save-failed ? @tr("Could not save the language preference.") :
+                                root.notice == 1 ? @tr("Copied to clipboard.") :
+                                root.notice == 2 ? @tr("Could not access the clipboard.") :
+                                root.notice == 3 ? @tr("Report saved · {}", root.notice-detail) :
+                                root.notice == 4 ? @tr("That file already exists. Choose another name.") :
+                                root.notice == 5 ? @tr("Could not save the report. Choose another location or try again.") :
+                                root.notice == 6 ? @tr("No data is available for this export.") :
+                                root.notice == 7 ? @tr("Could not open the folder.") :
+                                root.notice == 9 ? @tr("You don't have permission to save here. Choose another folder.") :
+                                root.notice == 10 ? @tr("There isn't enough free space to save the report.") :
+                                root.notice == 11 ? @tr("The destination folder is unavailable. Choose another folder.") :
+                                @tr("Saving canceled.");
+                        }
+                        if root.folder-ready : Button { text: @tr("Open folder"); clicked => { root.open-folder(); } }
+                    }
+
+                    VerticalLayout {
+                        visible: root.page < 7;
+                        height: root.page < 7 ? self.preferred-height : 0px;
+                        spacing: 10px;
+                        if root.page == 0 : Rectangle {
+                            height: 74px;
+                            border-radius: 8px;
+                            background: root.raised;
+                            HorizontalLayout {
+                                padding-left: 16px;
+                                padding-right: 16px;
+                                spacing: 16px;
+                                VerticalLayout {
+                                    alignment: center;
+                                    spacing: 4px;
+                                    Text { text: root.paused ? @tr("CPU monitoring paused") : @tr("Live CPU usage"); color: root.ink; font-weight: 650; }
+                                }
+                                Rectangle { horizontal-stretch: 1; }
+                                Text { text: root.cpu-value; color: root.accent; font-size: 26px; font-weight: 700; vertical-alignment: center; }
+                                VerticalLayout {
+                                    alignment: center;
+                                    Button { text: @tr("Sensors"); clicked => { root.navigate(7); } }
+                                }
+                            }
+                        }
+                        HorizontalLayout {
+                            spacing: 12px;
+                            field-search := LineEdit {
+                                placeholder-text: @tr("Search inventory");
+                                accessible-label: @tr("Search inventory");
+                                edited(value) => { root.search(value); }
+                            }
+                            Text {
+                                text: root.capture-time;
+                                color: root.muted;
+                                font-size: 12px;
+                                vertical-alignment: center;
+                            }
+                        }
+                    }
+
+                    if root.page < 7 : VerticalLayout {
+                        vertical-stretch: 1;
+                        spacing: 6px;
+                        if root.rows.length == 0 : Text {
+                            color: root.muted;
+                            wrap: word-wrap;
+                            text: root.refreshing ? @tr("Collecting inventory…") : @tr("No matching fields.");
+                        }
+                        ListView {
+                            viewport-width: self.visible-width;
+                            for item in root.rows : Rectangle {
+                                height: 58px;
+                                Rectangle { y: parent.height - 1px; height: 1px; background: root.line; }
+                                HorizontalLayout {
+                                    spacing: 12px;
+                                    padding-right: 8px;
+                                    VerticalLayout {
+                                        width: 182px;
+                                        alignment: center;
+                                        spacing: 3px;
+                                        Text { text: item.label; color: root.ink; font-weight: 600; wrap: word-wrap; }
+                                        Text { text: item.group; color: root.muted; font-size: 11px; overflow: elide; }
+                                    }
+                                    VerticalLayout {
+                                        horizontal-stretch: 1;
+                                        alignment: center;
+                                        spacing: 3px;
+                                        Text { text: item.value; color: root.ink; wrap: word-wrap; }
+                                        Text { text: item.detail; color: root.muted; font-size: 11px; overflow: elide; }
+                                    }
+                                    VerticalLayout {
+                                        alignment: center;
+                                        Button {
+                                            text: @tr("Copy");
+                                            accessible-label: @tr("Copy {}", item.label);
+                                            enabled: item.copyable;
+                                            clicked => { root.copy(item.value); }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    VerticalLayout {
+                        visible: root.page == 7;
+                        height: root.page == 7 ? self.preferred-height : 0px;
+                        spacing: 8px;
+                        HorizontalLayout {
+                            spacing: 8px;
+                            metric-search := LineEdit {
+                                placeholder-text: @tr("Filter sensors");
+                                accessible-label: @tr("Filter sensors");
+                                edited(value) => { root.metric-filter(value); }
+                            }
+                            ComboBox {
+                                horizontal-stretch: 1;
+                                accessible-label: @tr("Sensor");
+                                model: root.metric-options;
+                                current-index: root.metric-index;
+                                enabled: root.metric-options.length > 0;
+                                selected(_) => { root.metric(self.current-index); }
+                            }
+                            ComboBox {
+                                width: 156px;
+                                accessible-label: @tr("History range");
+                                model: root.times;
+                                current-index: root.range-index;
+                                selected(_) => { root.range-changed(self.current-index); }
+                            }
+                        }
+                    }
+
+                    if root.page == 7 : ScrollView {
+                        vertical-stretch: 1;
+                        viewport-width: self.visible-width;
+                        viewport-height: max(self.visible-height, 315px);
+                        VerticalLayout {
+                            alignment: start;
+                            padding-right: 8px;
+                            spacing: 10px;
+                            HorizontalLayout {
+                                spacing: 8px;
+                                for stat[index] in [@tr("Current"), @tr("Session minimum"), @tr("Session maximum"), @tr("Session average")] : Rectangle {
+                                    horizontal-stretch: 1;
+                                    min-width: 0px;
+                                    preferred-width: 120px;
+                                    height: 68px;
+                                    border-radius: 6px;
+                                    background: root.raised;
+                                    VerticalLayout {
+                                        padding: 10px;
+                                        spacing: 3px;
+                                        alignment: center;
+                                        Text { text: stat; color: root.muted; font-size: 12px; overflow: elide; }
+                                        Text {
+                                            color: root.ink;
+                                            font-weight: 650;
+                                            font-size: 19px;
+                                            overflow: elide;
+                                            text: index == 0 ? root.current-value : index == 1 ? root.low-value : index == 2 ? root.high-value : root.average-value;
+                                        }
+                                    }
+                                }
+                            }
+                            Text { text: root.metric-detail; color: root.muted; font-size: 12px; wrap: word-wrap; }
+                            Rectangle {
+                                height: 167px;
+                                border-radius: 6px;
+                                border-width: 1px;
+                                border-color: root.line;
+                                clip: true;
+                                HorizontalLayout {
+                                    padding: 10px;
+                                    spacing: 6px;
+                                    VerticalLayout {
+                                        width: 85px;
+                                        Text { text: root.axis-high; color: root.muted; font-size: 11px; }
+                                        Rectangle { vertical-stretch: 1; }
+                                        Text { text: root.axis-low; color: root.muted; font-size: 11px; }
+                                    }
+                                    Rectangle {
+                                        vertical-stretch: 1;
+                                        horizontal-stretch: 1;
+                                        for mark in [0.0, 0.5, 1.0] : Rectangle {
+                                            y: (parent.height - 1px) * mark;
+                                            height: 1px;
+                                            background: root.line;
+                                        }
+                                        if root.has-graph : Path {
+                                            width: parent.width;
+                                            height: parent.height;
+                                            commands: root.graph;
+                                            stroke: root.accent;
+                                            stroke-width: 1.6px;
+                                            stroke-line-cap: round;
+                                            fill: transparent;
+                                            fit: fill;
+                                            viewbox-width: 1000;
+                                            viewbox-height: 100;
+                                        }
+                                        if !root.has-graph : Text {
+                                            width: parent.width;
+                                            height: parent.height;
+                                            text: root.metric-options.length == 0 ? @tr("No matching sensors.") : @tr("Waiting for readings…");
+                                            color: root.muted;
+                                            horizontal-alignment: center;
+                                            vertical-alignment: center;
+                                            wrap: word-wrap;
+                                        }
+                                    }
+                                }
+                            }
+                            HorizontalLayout {
+                                Text { text: root.times[root.range-index]; color: root.muted; font-size: 12px; }
+                                Rectangle { horizontal-stretch: 1; }
+                                Text { text: @tr("Gaps indicate missing samples"); color: root.muted; font-size: 12px; }
+                            }
+                        }
+                    }
+
+                    if root.page == 8 : VerticalLayout {
+                        vertical-stretch: 1;
+                        spacing: 10px;
+                        HorizontalLayout {
+                            spacing: 8px;
+                            scope-box := ComboBox {
+                                model: root.export-scopes;
+                                current-index: root.export-default-scope;
+                                accessible-label: @tr("Export scope");
+                                selected(_) => { root.share-safe-category = true; root.invalidate-export(); }
+                            }
+                            format-box := ComboBox {
+                                model: ["JSON", "TXT", "CSV", "HTML"];
+                                current-index: 0;
+                                width: 160px;
+                                accessible-label: @tr("File format");
+                                selected(_) => { root.invalidate-export(); }
+                            }
+                        }
+                        if scope-box.current-index == 1 : ComboBox {
+                            model: ["CPU", @tr("Memory"), @tr("Motherboard"), @tr("Graphics"), @tr("Storage"), @tr("System")];
+                            current-index: root.export-category;
+                            accessible-label: @tr("Category");
+                            selected(_) => {
+                                root.export-category = self.current-index;
+                                root.share-safe-category = true;
+                                root.invalidate-export();
+                            }
+                        }
+                        HorizontalLayout {
+                            spacing: 8px;
+                            if scope-box.current-index == 1 : CheckBox {
+                                text: @tr("Share-safe");
+                                checked: root.share-safe-category;
+                                toggled => { root.share-safe-category = self.checked; root.invalidate-export(); }
+                            }
+                            if scope-box.current-index != 1 : Text {
+                                text: @tr("Share-safe");
+                                color: root.accent;
+                                font-weight: 650;
+                            }
+                            Text {
+                                horizontal-stretch: 1;
+                                wrap: word-wrap;
+                                color: root.muted;
+                                text: scope-box.current-index != 1 || root.share-safe-category ? @tr("Hides serial numbers, volume names, and volume paths.") : @tr("This report may include identifiers. Review it before sharing.");
+                            }
+                        }
+                        HorizontalLayout {
+                            spacing: 8px;
+                            Button {
+                                text: @tr("Preview report");
+                                enabled: !root.export-busy && (scope-box.current-index >= 2 || root.ready);
+                                clicked => { root.prepare-export(scope-box.current-index, format-box.current-index, root.share-safe-category, root.export-category); }
+                            }
+                            Button {
+                                text: root.export-busy ? @tr("Saving…") : @tr("Save report…");
+                                primary: true;
+                                enabled: root.export-prepared && !root.export-busy;
+                                clicked => { root.save-export(); }
+                            }
+                            Rectangle { horizontal-stretch: 1; }
+                        }
+                        Text {
+                            color: root.muted;
+                            wrap: word-wrap;
+                            text: root.export-prepared ? (root.preview-count == 1 ? @tr("1 row · page {}", root.preview-page + 1) : @tr("{} rows · page {}", root.preview-count, root.preview-page + 1)) :
+                                @tr("Preview the report to review what will be saved.");
+                        }
+                        ListView {
+                            vertical-stretch: 1;
+                            viewport-width: self.visible-width;
+                            for entry in root.preview : Rectangle {
+                                height: 42px;
+                                Rectangle { y: parent.height - 1px; height: 1px; background: root.line; }
+                                HorizontalLayout {
+                                    spacing: 12px;
+                                    Text { text: entry.label; vertical-alignment: center; color: root.muted; width: 45%; overflow: elide; }
+                                    Text { text: entry.value; vertical-alignment: center; color: root.ink; wrap: word-wrap; }
+                                }
+                            }
+                        }
+                        if root.preview-count > 100 : HorizontalLayout {
+                            spacing: 8px;
+                            Button { text: @tr("Previous"); enabled: root.preview-page > 0; clicked => { root.change-preview-page(-1); } }
+                            Button { text: @tr("Next"); enabled: (root.preview-page + 1) * 100 < root.preview-count; clicked => { root.change-preview-page(1); } }
+                            Rectangle { horizontal-stretch: 1; }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

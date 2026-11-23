@@ -1,0 +1,20 @@
+[package]
+name = "nucelvo-collect"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+nucelvo-core.workspace = true
+chrono.workspace = true
+
+[target.'cfg(windows)'.dependencies]
+winreg = "0.55"
+wmi = { version = "=0.18.4", default-features = false }
+futures = "0.3"
+futures-timer = "3"
+windows = { version = "0.62", features = ["Win32_Graphics_Dxgi", "Win32_Graphics_Dxgi_Common"] }
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_System_Performance", "Win32_System_SystemInformation", "Win32_System_Threading"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+libc = "0.2"

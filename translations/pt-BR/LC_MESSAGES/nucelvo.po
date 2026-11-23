@@ -1,0 +1,270 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Nucelvo 0.1.0\n"
+"Language: pt-BR\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgctxt "MainWindow"
+msgid "Overview"
+msgstr "Visão geral"
+
+msgctxt "MainWindow"
+msgid "Memory"
+msgstr "Memória"
+
+msgctxt "MainWindow"
+msgid "Motherboard"
+msgstr "Placa-mãe"
+
+msgctxt "MainWindow"
+msgid "Graphics"
+msgstr "Vídeo"
+
+msgctxt "MainWindow"
+msgid "Storage"
+msgstr "Armazenamento"
+
+msgctxt "MainWindow"
+msgid "System"
+msgstr "Sistema"
+
+msgctxt "MainWindow"
+msgid "Sensors"
+msgstr "Sensores"
+
+msgctxt "MainWindow"
+msgid "Export"
+msgstr "Exportar"
+
+msgctxt "MainWindow"
+msgid "Last minute"
+msgstr "Último minuto"
+
+msgctxt "MainWindow"
+msgid "Last 5 minutes"
+msgstr "Últimos 5 minutos"
+
+msgctxt "MainWindow"
+msgid "Last 15 minutes"
+msgstr "Últimos 15 minutos"
+
+msgctxt "MainWindow"
+msgid "Full inventory"
+msgstr "Inventário completo"
+
+msgctxt "MainWindow"
+msgid "One category"
+msgstr "Uma categoria"
+
+msgctxt "MainWindow"
+msgid "Current sensor readings"
+msgstr "Leituras atuais dos sensores"
+
+msgctxt "MainWindow"
+msgid "Sensor history · 5 minutes"
+msgstr "Histórico de sensores · 5 minutos"
+
+msgctxt "MainWindow"
+msgid "Sensor history · 15 minutes"
+msgstr "Histórico de sensores · 15 minutos"
+
+msgctxt "MainWindow"
+msgid "Navigation"
+msgstr "Navegação"
+
+msgctxt "MainWindow"
+msgid "Language"
+msgstr "Idioma"
+
+msgctxt "MainWindow"
+msgid "Refreshing…"
+msgstr "Atualizando…"
+
+msgctxt "MainWindow"
+msgid "Refresh inventory"
+msgstr "Atualizar inventário"
+
+msgctxt "MainWindow"
+msgid "Resume"
+msgstr "Retomar"
+
+msgctxt "MainWindow"
+msgid "Pause"
+msgstr "Pausar"
+
+msgctxt "MainWindow"
+msgid "Could not save the language preference."
+msgstr "Não foi possível salvar a preferência de idioma."
+
+msgctxt "MainWindow"
+msgid "Copied to clipboard."
+msgstr "Copiado para a área de transferência."
+
+msgctxt "MainWindow"
+msgid "Could not access the clipboard."
+msgstr "Não foi possível acessar a área de transferência."
+
+msgctxt "MainWindow"
+msgid "Report saved · {}"
+msgstr "Relatório salvo · {}"
+
+msgctxt "MainWindow"
+msgid "That file already exists. Choose another name."
+msgstr "Esse arquivo já existe. Escolha outro nome."
+
+msgctxt "MainWindow"
+msgid "Could not save the report. Choose another location or try again."
+msgstr "Não foi possível salvar o relatório. Escolha outro local ou tente novamente."
+
+msgctxt "MainWindow"
+msgid "No data is available for this export."
+msgstr "Não há dados disponíveis para esta exportação."
+
+msgctxt "MainWindow"
+msgid "Could not open the folder."
+msgstr "Não foi possível abrir a pasta."
+
+msgctxt "MainWindow"
+msgid "Saving canceled."
+msgstr "Salvamento cancelado."
+
+msgctxt "MainWindow"
+msgid "Open folder"
+msgstr "Abrir pasta"
+
+msgctxt "MainWindow"
+msgid "Live CPU usage"
+msgstr "Uso da CPU em tempo real"
+
+msgctxt "MainWindow"
+msgid "Search inventory"
+msgstr "Buscar no inventário"
+
+msgctxt "MainWindow"
+msgid "Collecting inventory…"
+msgstr "Coletando inventário…"
+
+msgctxt "MainWindow"
+msgid "No matching fields."
+msgstr "Nenhum campo corresponde à busca."
+
+msgctxt "MainWindow"
+msgid "Copy"
+msgstr "Copiar"
+
+msgctxt "MainWindow"
+msgid "Copy {}"
+msgstr "Copiar {}"
+
+msgctxt "MainWindow"
+msgid "Filter sensors"
+msgstr "Filtrar sensores"
+
+msgctxt "MainWindow"
+msgid "Sensor"
+msgstr "Sensor"
+
+msgctxt "MainWindow"
+msgid "History range"
+msgstr "Intervalo do histórico"
+
+msgctxt "MainWindow"
+msgid "Current"
+msgstr "Atual"
+
+msgctxt "MainWindow"
+msgid "Session minimum"
+msgstr "Mínimo da sessão"
+
+msgctxt "MainWindow"
+msgid "Session maximum"
+msgstr "Máximo da sessão"
+
+msgctxt "MainWindow"
+msgid "Session average"
+msgstr "Média da sessão"
+
+msgctxt "MainWindow"
+msgid "No matching sensors."
+msgstr "Nenhum sensor encontrado."
+
+msgctxt "MainWindow"
+msgid "Waiting for readings…"
+msgstr "Aguardando leituras…"
+
+msgctxt "MainWindow"
+msgid "Gaps indicate missing samples"
+msgstr "As lacunas indicam períodos sem leituras"
+
+msgctxt "MainWindow"
+msgid "Export scope"
+msgstr "Conteúdo da exportação"
+
+msgctxt "MainWindow"
+msgid "File format"
+msgstr "Formato de arquivo"
+
+msgctxt "MainWindow"
+msgid "Share-safe"
+msgstr "Compartilhamento seguro"
+
+msgctxt "MainWindow"
+msgid "Hides serial numbers, volume names, and volume paths."
+msgstr "Oculta números de série e os nomes e caminhos dos volumes."
+
+msgctxt "MainWindow"
+msgid "This report may include identifiers. Review it before sharing."
+msgstr "Este relatório pode incluir identificadores. Revise-o antes de compartilhar."
+
+msgctxt "MainWindow"
+msgid "Preview report"
+msgstr "Visualizar relatório"
+
+msgctxt "MainWindow"
+msgid "Saving…"
+msgstr "Salvando…"
+
+msgctxt "MainWindow"
+msgid "Save report…"
+msgstr "Salvar relatório…"
+
+msgctxt "MainWindow"
+msgid "{} rows · page {}"
+msgstr "{} linhas · página {}"
+
+msgctxt "MainWindow"
+msgid "Preview the report to review what will be saved."
+msgstr "Confira na prévia os dados que serão salvos."
+
+msgctxt "MainWindow"
+msgid "Previous"
+msgstr "Anterior"
+
+msgctxt "MainWindow"
+msgid "Next"
+msgstr "Próxima"
+
+msgctxt "MainWindow"
+msgid "Category"
+msgstr "Categoria"
+
+msgctxt "MainWindow"
+msgid "CPU monitoring paused"
+msgstr "Monitoramento da CPU pausado"
+
+msgctxt "MainWindow"
+msgid "You don't have permission to save here. Choose another folder."
+msgstr "Você não tem permissão para salvar neste local. Escolha outra pasta."
+
+msgctxt "MainWindow"
+msgid "There isn't enough free space to save the report."
+msgstr "Não há espaço livre suficiente para salvar o relatório."
+
+msgctxt "MainWindow"
+msgid "The destination folder is unavailable. Choose another folder."
+msgstr "A pasta de destino está indisponível. Escolha outra pasta."
+
+msgctxt "MainWindow"
+msgid "1 row · page {}"
+msgstr "1 linha · página {}"
