@@ -213,7 +213,7 @@ export component MainWindow inherits Window {
     ];
     private property <[int]> tab-icons: [0, 1, 2, 3, 4, 5, 6, 7, 8, 13];
     private property <[string]> times: [@tr("Last minute"), @tr("Last 5 minutes"), @tr("Last 15 minutes")];
-    private property <[string]> sensor-groups: [@tr("All sensors"), "CPU", @tr("Memory"), @tr("Graphics"), @tr("Temperature"), @tr("Network")];
+    private property <[string]> sensor-groups: [@tr("All sensors"), "CPU", @tr("Memory"), @tr("Graphics"), @tr("Temperature"), @tr("Network"), @tr("Frequencies")];
     private property <[string]> export-scopes: [@tr("Full inventory"), @tr("One category"), @tr("Current sensor readings"), @tr("Sensor history · 5 minutes"), @tr("Sensor history · 15 minutes")];
     in property <bool> narrow;
     out property <bool> dark-mode: Palette.color-scheme == ColorScheme.dark;

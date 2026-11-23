@@ -11,13 +11,14 @@ Free, open-source hardware inventory and live sensor monitoring for Windows and 
 
 ## ⬇️ Download for Windows
 
-The [GitHub release](https://github.com/informigados/nucelvo/releases/tag/v0.6.0) includes a Windows x64 installer, a portable ZIP, and SHA-256 checksums. The installer runs for the current user. To use the portable edition, extract the ZIP and open `nucelvo.exe`.
+The [GitHub release](https://github.com/informigados/nucelvo/releases/tag/v0.7.0) includes a Windows x64 installer, a portable ZIP, and SHA-256 checksums. The installer runs for the current user. To use the portable edition, extract the ZIP and open `nucelvo.exe`.
 
 ## 🖥️ What you can do
 
 - Browse your CPU, memory, motherboard, graphics, storage, and system information. Search the inventory and copy individual values.
+- Review the latest recorded Windows memory test or the Linux EDAC error counters in Memory when the system exposes them.
 - Check CPU, memory, graphics usage, and available temperatures in Overview. Open a reading to see its source, session statistics, and up to 15 minutes of history.
-- On supported NVIDIA cards in Windows, monitor GPU temperature, usage, VRAM usage, fan speed, and power from the installed graphics driver. Sensor filters group readings by component or temperature.
+- On supported NVIDIA cards in Windows, monitor GPU temperature, usage, VRAM usage, fan speed, power, and clock frequencies from the installed driver. Use the Frequencies filter to find supported CPU and GPU clocks.
 - Check drive alerts, power-on hours, SSD endurance used, and other storage health readings when available. The System tab also shows power and battery information.
 - Review physical network adapters, negotiated link speed, and cumulative traffic in System. On Windows, System also shows active displays and their current settings.
 - Check for new GitHub releases on demand from About.

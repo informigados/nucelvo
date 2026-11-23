@@ -865,12 +865,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut smoke = false;
     let mut require_logical = false;
     let mut require_nvidia = false;
+    let mut require_gpu_clocks = false;
+    let mut require_native_cache = false;
+    let mut require_memory_diagnostics = false;
     let mut require_storage = false;
     let mut require_network = false;
     for argument in std::env::args().skip(1) {
         smoke |= argument == "--smoke-test";
         require_logical |= argument == "--require-logical-cpu";
         require_nvidia |= argument == "--require-nvidia";
+        require_gpu_clocks |= argument == "--require-gpu-clocks";
+        require_native_cache |= argument == "--require-native-cache";
+        require_memory_diagnostics |= argument == "--require-memory-diagnostics";
         require_storage |= argument == "--require-storage";
         require_network |= argument == "--require-network";
     }
@@ -968,11 +974,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     .is_some_and(|point| point.state == State::Ok && point.value.is_some())
             })
         };
+        let clock_id = |domain: &str| {
+            app.borrow().monitor.series.iter().find_map(|(id, series)| {
+                (id.starts_with("gpu:nvidia:") && id.ends_with(domain)
+                    && series.points.back().is_some_and(|point| point.value.is_some()))
+                    .then(|| id.clone())
+            })
+        };
+        let graphics_clock = require_gpu_clocks.then(|| clock_id(":graphics_clock")).flatten();
+        let clocks_ready = !require_gpu_clocks
+            || (graphics_clock.is_some() && clock_id(":memory_clock").is_some());
         if smoke
             && window.get_ready()
             && (!require_logical || logical > 0)
             && nvidia_ready
             && network_ready
+            && clocks_ready
             && app
                 .borrow()
                 .monitor
@@ -1004,6 +1021,26 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     && window.get_metric_tone() == 3
             } else {
                 true
+            };
+            let clock_chart = graphics_clock.is_none_or(|id| {
+                window.invoke_navigate(4);
+                window.invoke_open_sensor(id.into());
+                window.get_inline_chart_open() && window.get_has_graph()
+                    && window.get_metric_icon() == 16
+            });
+            let native_cache = !require_native_cache || {
+                window.invoke_navigate(1);
+                let rows = window.get_rows();
+                ["Total L1 data cache", "Total L1 instruction cache", "Total L2 cache", "Total L3 cache"]
+                    .iter().all(|label| rows.iter().any(|row| row.label == *label
+                        && row.copyable && !row.note.is_empty()))
+            };
+            let memory_diagnostics = !require_memory_diagnostics || {
+                window.invoke_navigate(2);
+                window.get_rows().iter().any(|row| {
+                    row.group == "Memory diagnostics" && row.label == "Latest Windows memory test"
+                        && row.copyable && !row.note.is_empty()
+                })
             };
             window.invoke_navigate(STORAGE_PAGE);
             let storage_layout = !require_storage || {
@@ -1089,6 +1126,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 ("uptime explanation", uptime_note),
                 ("network inventory", network_inventory),
                 ("network rate chart", network_chart),
+                ("GPU clock chart", clock_chart),
+                ("native CPU cache inventory", native_cache),
+                ("memory diagnostics", memory_diagnostics),
                 ("hardware inventory", real),
                 ("Sensors chart", chart_visible),
                 ("report formats", saved && !report.is_empty()),

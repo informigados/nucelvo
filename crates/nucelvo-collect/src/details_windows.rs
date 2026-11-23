@@ -208,6 +208,11 @@ pub fn hardware_details() -> Vec<Field> {
             number("L3CacheSize", "l3_cache", "L3 cache", "Cache L3", "KiB"),
         ],
     );
+    let native_caches = super::cache::fields();
+    fields.retain(|field| {
+        field.category != C::Cpu || !native_caches.iter().any(|cache| cache.key == field.key)
+    });
+    fields.extend(native_caches);
     query(
         &mut fields,
         &conn,

@@ -5,8 +5,14 @@ use std::time::Instant;
 #[cfg(target_os = "macos")]
 use super::platform as native;
 #[cfg(windows)]
+#[path = "cache_windows.rs"]
+mod cache;
+#[cfg(windows)]
 #[path = "displays_windows.rs"]
 mod displays;
+#[cfg(any(windows, target_os = "linux"))]
+#[path = "memory_diagnostics.rs"]
+mod memory_diagnostics;
 #[cfg(target_os = "linux")]
 #[path = "details_linux.rs"]
 mod native;
@@ -85,6 +91,8 @@ pub fn base_snapshot() -> Snapshot {
 
 pub fn hardware_details() -> Vec<Field> {
     let mut fields = native::hardware_details();
+    #[cfg(any(windows, target_os = "linux"))]
+    fields.extend(memory_diagnostics::fields());
     fields.extend(power::fields());
     #[cfg(any(windows, target_os = "linux"))]
     fields.extend(network::fields());

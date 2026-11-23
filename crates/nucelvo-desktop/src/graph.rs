@@ -43,7 +43,8 @@ pub fn plot(series: &Series, now: Instant, range: Duration, pt: bool) -> Plot {
     } else if last.unit == "bit/s" {
         (0.0, (maximum * 1.12).max(1.0))
     } else {
-        let pad = ((maximum - minimum) * 0.12).max(0.1);
+        let min_pad = if last.unit == "Hz" { 1e6 } else { 0.1 };
+        let pad = ((maximum - minimum) * 0.12).max(min_pad);
         (minimum - pad, maximum + pad)
     };
     result.low = sensor_value(low, last.unit, pt);

@@ -554,6 +554,73 @@ pub fn memory_load() -> io::Result<f64> {
 }
 
 pub fn sensors() -> Vec<Sample> {
+    let mut samples = cpu_frequencies(Path::new("/sys/devices/system/cpu/cpufreq"));
+    samples.extend(hwmon_sensors());
+    samples
+}
+
+fn cpu_frequencies(root: &Path) -> Vec<Sample> {
+    let mut policies: Vec<_> = entries(root)
+        .unwrap_or_default()
+        .into_iter()
+        .filter_map(|path| {
+            let index = path
+                .file_name()?
+                .to_str()?
+                .strip_prefix("policy")?
+                .parse::<u32>()
+                .ok()?;
+            Some((index, path))
+        })
+        .collect();
+    policies.sort_unstable_by_key(|(index, _)| *index);
+    policies
+        .into_iter()
+        .take(16)
+        .map(|(index, path)| {
+            let hardware = read(path.join("cpuinfo_cur_freq"));
+            let (value, kind, source, en, pt) = if hardware
+                .as_ref()
+                .is_err_and(|error| error.kind() == io::ErrorKind::NotFound)
+            {
+                (
+                    read(path.join("scaling_cur_freq")),
+                    "driver",
+                    "sysfs · CPUFreq scaling_cur_freq",
+                    "Driver-reported CPU frequency",
+                    "Frequência da CPU informada pelo driver",
+                )
+            } else {
+                (
+                    hardware,
+                    "hardware",
+                    "sysfs · CPUFreq cpuinfo_cur_freq",
+                    "Hardware CPU frequency",
+                    "Frequência da CPU medida pelo hardware",
+                )
+            };
+            let hertz = value.and_then(|text| {
+                text.parse::<u64>()
+                    .ok()
+                    .filter(|value| *value > 0)
+                    .and_then(|value| value.checked_mul(1000))
+                    .map(|value| value as f64)
+                    .ok_or_else(|| io::ErrorKind::InvalidData.into())
+            });
+            let mut sample = super::sample(
+                format!("cpufreq:{index}:{kind}"),
+                format!("{en} · Policy {index}"),
+                None,
+                "Hz",
+                Reading::from_result(hertz, source),
+            );
+            sample.name_pt = Some(format!("{pt} · Política {index}").into());
+            sample
+        })
+        .collect()
+}
+
+fn hwmon_sensors() -> Vec<Sample> {
     const SOURCE: &str = "Linux · hwmon";
     let paths = match entries("/sys/class/hwmon") {
         Ok(paths) => paths,
@@ -581,7 +648,12 @@ pub fn sensors() -> Vec<Sample> {
             else {
                 continue;
             };
-            let Some((_, unit, divisor)) = [
+            let clock = match (chip.as_str(), stem) {
+                ("amdgpu", "freq1") => Some(("GPU graphics clock", "Clock gráfico da GPU")),
+                ("amdgpu", "freq2") => Some(("GPU memory clock", "Clock da memória da GPU")),
+                _ => None,
+            };
+            let quantity = [
                 ("temp", "°C", 1000.0),
                 ("fan", "RPM", 1.0),
                 ("in", "V", 1000.0),
@@ -592,7 +664,9 @@ pub fn sensors() -> Vec<Sample> {
                 stem.strip_prefix(prefix).is_some_and(|index| {
                     !index.is_empty() && index.bytes().all(|byte| byte.is_ascii_digit())
                 })
-            }) else {
+            })
+            .map(|(_, unit, divisor)| (unit, divisor));
+            let Some((unit, divisor)) = quantity.or(clock.map(|_| ("Hz", 1.0))) else {
                 continue;
             };
             let label = read(path.join(format!("{stem}_label"))).unwrap_or_else(|_| stem.into());
@@ -602,17 +676,54 @@ pub fn sensors() -> Vec<Sample> {
                         .map_err(|_| io::ErrorKind::InvalidData.into())
                 })
                 .map(|value| value as f64 / divisor);
-            samples.push(super::sample(
+            let mut sample = super::sample(
                 format!("hwmon:{}:{chip}:{stem}", device.display()),
-                format!("{chip} · {label}"),
+                clock.map_or_else(
+                    || format!("{chip} · {label}"),
+                    |(en, _)| format!("{en} · {chip}"),
+                ),
                 None,
                 unit,
                 Reading::from_result(value, SOURCE),
-            ));
+            );
+            if let Some((_, pt)) = clock {
+                sample.name_pt = Some(format!("{pt} · {chip}").into());
+            }
+            samples.push(sample);
         }
     }
     if samples.is_empty() {
         return super::unavailable_sensor(SOURCE, State::Unsupported);
     }
     samples
+}
+
+#[cfg(test)]
+mod frequency_tests {
+    use super::*;
+
+    #[test]
+    fn keeps_measured_and_driver_reported_frequencies_distinct() {
+        let root = tempfile::tempdir().unwrap();
+        let hardware = root.path().join("policy2");
+        let driver = root.path().join("policy10");
+        fs::create_dir(&hardware).unwrap();
+        fs::create_dir(&driver).unwrap();
+        fs::write(hardware.join("cpuinfo_cur_freq"), "2430000\n").unwrap();
+        fs::write(hardware.join("scaling_cur_freq"), "1300000\n").unwrap();
+        fs::write(driver.join("scaling_cur_freq"), "1900000\n").unwrap();
+
+        let samples = cpu_frequencies(root.path());
+        assert_eq!(samples.len(), 2);
+        assert_eq!(
+            (&*samples[0].id, samples[0].value),
+            ("cpufreq:2:hardware", Some(2.43e9))
+        );
+        assert_eq!(
+            (&*samples[1].id, samples[1].value),
+            ("cpufreq:10:driver", Some(1.9e9))
+        );
+        fs::write(hardware.join("cpuinfo_cur_freq"), "invalid").unwrap();
+        assert_eq!(cpu_frequencies(root.path())[0].value, None);
+    }
 }

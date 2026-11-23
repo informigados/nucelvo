@@ -12,6 +12,9 @@ Nucelvo reads system, CPU, memory, motherboard, graphics, and storage informatio
 | Reading | Windows | Linux |
 | --- | --- | --- |
 | CPU and memory usage | Native Windows counters | Kernel counters |
+| Passive memory diagnostics | Latest recognized Windows Memory Diagnostic event retained in the System log | Corrected and uncorrected error counters from EDAC memory controllers when exposed |
+| CPU cache inventory | Native L1, L2, and L3 topology totals when available, with WMI fallback for L2 and L3 | Cache information exposed for the first logical CPU |
+| Live clock frequencies | Graphics and memory clocks on supported NVIDIA GPUs | CPUFreq policy readings and graphics and memory clocks exposed by AMD hwmon |
 | Temperature | Firmware ACPI zones where exposed and compatible NVIDIA GPUs through their graphics driver | Linux hardware monitoring interfaces |
 | GPU usage, VRAM used, fan speed, and power | Compatible NVIDIA GPUs through their graphics driver | Readings exposed by Linux hardware monitoring interfaces |
 | Power source, system battery, charge, and charging status | Windows power status, aggregated by the operating system | System power supplies and individual batteries exposed by the kernel |
@@ -33,5 +36,9 @@ On Linux, the application uses `smartctl` in common system locations when presen
 The initial macOS collector reads the OS version and build, model, uptime, total and per-logical CPU usage, and memory usage. Hardware coverage for graphics, storage, networking, power, and temperature requires additional validation and platform providers.
 
 The **Sensors** screen shows the state of each reading. A gap in the chart indicates a period without readings. Report formats and source-build instructions are listed in the [README](../README.md).
+
+Select **Frequencies** in Sensors to view live clocks and their session minimum, current, maximum, and average values. A Linux CPUFreq policy can cover several logical processors. A hardware reading describes the current frequency obtained from hardware. A driver reading describes the frequency reported by the scaling driver and may reflect its last request.
+
+The **Memory diagnostics** section shows results at inventory capture time. On Windows, it reports the most recent matching event retained in the System log, including canceled and incomplete tests. On Linux, it sums each counter across the discovered EDAC controllers when they all expose that counter. Missing records, unavailable counters and measured zero are separate states. These readings come from existing operating system records and counters.
 
 Live network rates measure traffic across the connected physical adapters and include local network traffic. Rates are sampled about once per second. A change in the connected adapters, a pause, or a counter reset can leave a gap in the chart. Sensor reports use generic rate labels.

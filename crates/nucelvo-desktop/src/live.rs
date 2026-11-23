@@ -13,13 +13,27 @@ pub fn current(sample: &Sample, paused: bool, pt: bool) -> String {
     }
 }
 
+fn hwmon_chip(sample: &Sample) -> Option<&str> {
+    sample
+        .id
+        .strip_prefix("hwmon:")
+        .and_then(|id| id.rsplit(':').nth(1))
+}
+
 pub fn group_matches(group: i32, sample: &Sample) -> bool {
     match group {
-        1 => sample.id.starts_with("cpu:"),
+        1 => sample.id.starts_with("cpu:") || sample.id.starts_with("cpufreq:"),
         2 => sample.id.starts_with("memory:"),
-        3 => sample.id.starts_with("gpu:"),
+        3 => {
+            sample.id.starts_with("gpu:")
+                || matches!(
+                    hwmon_chip(sample),
+                    Some("amdgpu" | "nouveau" | "i915" | "xe")
+                )
+        }
         4 => sample.unit == "°C",
         5 => sample.id.starts_with("network:"),
+        6 => sample.unit == "Hz",
         _ => true,
     }
 }
@@ -44,6 +58,7 @@ pub fn icon(sample: &Sample) -> i32 {
         "RPM" => 11,
         "W" => 12,
         "MiB" => 2,
+        "Hz" => 16,
         _ if sample.id == "network:receive" => 14,
         _ if sample.id == "network:send" => 15,
         _ if sample.id.ends_with(":fan") => 11,
@@ -52,10 +67,7 @@ pub fn icon(sample: &Sample) -> i32 {
 }
 
 pub fn inline_matches(page: i32, sample: &Sample) -> bool {
-    let chip = sample
-        .id
-        .strip_prefix("hwmon:")
-        .and_then(|id| id.rsplit(':').nth(1));
+    let chip = hwmon_chip(sample);
     match page {
         0 => {
             matches!(sample.id.as_str(), "cpu:load" | "memory:load")
@@ -63,14 +75,11 @@ pub fn inline_matches(page: i32, sample: &Sample) -> bool {
                 || sample.unit == "°C"
         }
         1 => {
-            sample.id.starts_with("cpu:") && sample.id != "cpu:logical:status"
+            group_matches(1, sample) && sample.id != "cpu:logical:status"
                 || sample.unit == "°C" && matches!(chip, Some("coretemp" | "k10temp" | "zenpower"))
         }
         2 => sample.id == "memory:load",
-        4 => {
-            sample.id.starts_with("gpu:")
-                || matches!(chip, Some("amdgpu" | "nouveau" | "i915" | "xe"))
-        }
+        4 => group_matches(3, sample),
         5 => matches!(chip, Some("nvme" | "drivetemp")) && sample.unit == "°C",
         6 => sample.id.starts_with("network:"),
         _ => false,

@@ -274,6 +274,10 @@ msgid "Network"
 msgstr "Rede"
 
 msgctxt "MainWindow"
+msgid "Frequencies"
+msgstr "Frequências"
+
+msgctxt "MainWindow"
 msgid "Live network traffic"
 msgstr "Tráfego de rede em tempo real"
 

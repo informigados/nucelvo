@@ -58,7 +58,13 @@ pub fn row(field: &Field, pt: bool) -> Row {
         warning: field.key == "drive_health"
             && matches!(field.value.as_ref(), Some(Value::Text(value)) if value == "alert")
             || field.key == "ssd_endurance_used"
-                && matches!(field.value.as_ref(), Some(Value::Number(value)) if *value >= 100),
+                && matches!(field.value.as_ref(), Some(Value::Number(value)) if *value >= 100)
+            || field.key == "memory_diagnostic_status"
+                && matches!(field.value.as_ref(), Some(Value::Text(value)) if value == "errors_reported")
+            || matches!(
+                field.key,
+                "memory_diagnostic_corrected" | "memory_diagnostic_uncorrected"
+            ) && matches!(field.value.as_ref(), Some(Value::Number(value)) if *value > 0),
         ..Default::default()
     }
 }
@@ -95,6 +101,14 @@ pub fn section(field: &Field) -> u8 {
 
 fn note(key: &str, pt: bool) -> &'static str {
     let text = match key {
+        "memory_diagnostic_status" => (
+            "Result of the most recent matching event still in the Windows System log. An empty log gives no information about memory health.",
+            "Resultado do evento correspondente mais recente ainda no log Sistema do Windows. A ausência de registro não informa a condição da memória.",
+        ),
+        "memory_diagnostic_corrected" | "memory_diagnostic_uncorrected" => (
+            "Sum reported by the available Linux memory controllers at capture time. Zero means these counters reported no errors.",
+            "Soma informada pelos controladores de memória disponíveis no Linux no momento da captura. Zero significa que esses contadores não registraram erros.",
+        ),
         "network_link_speed" | "network_rx_speed" | "network_tx_speed" => (
             "The speed negotiated by this adapter. Internet speed depends on the rest of the connection.",
             "Velocidade negociada pelo adaptador. A velocidade da internet depende do restante da conexão.",
@@ -123,6 +137,12 @@ fn note(key: &str, pt: bool) -> &'static str {
             "The number of physical processing cores reported for the CPU.",
             "Quantidade de núcleos físicos de processamento informada para a CPU.",
         ),
+        "l1_data_cache" | "l1_instruction_cache" | "l1_unified_cache" | "l2_cache" | "l3_cache" => {
+            (
+                "A small, fast memory used by the CPU. Rows labeled Total sum the distinct caches of that kind, counting a shared cache once.",
+                "Memória pequena e rápida usada pela CPU. As linhas com Total somam os caches distintos desse tipo, contando cada cache compartilhado uma só vez.",
+            )
+        }
         "configured_speed" => (
             "The memory speed configured by the system firmware for this module.",
             "Velocidade configurada pelo firmware do sistema para este módulo de memória.",

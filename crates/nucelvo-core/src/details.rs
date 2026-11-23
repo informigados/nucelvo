@@ -156,6 +156,14 @@ impl Field {
             Category::Storage if self.device >= 10_000 => ("Volume", self.device - 9_999),
             Category::Storage => (if pt { "Unidade" } else { "Drive" }, self.device + 1),
             Category::Graphics => (if pt { "Adaptador" } else { "Adapter" }, self.device + 1),
+            Category::Memory if self.key.starts_with("memory_diagnostic_") => {
+                return if pt {
+                    "Diagnóstico de memória"
+                } else {
+                    "Memory diagnostics"
+                }
+                .into();
+            }
             Category::Memory if self.device > 0 => {
                 (if pt { "Módulo" } else { "Module" }, self.device)
             }

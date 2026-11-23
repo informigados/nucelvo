@@ -388,6 +388,23 @@ pub fn field_display(field: &Field, pt: bool) -> String {
             "secondary" => "Secondary".into(),
             _ => one_line(value),
         },
+        Some(Value::Text(value)) if field.key == "memory_diagnostic_status" => {
+            let labels = match value.as_str() {
+                "errors_reported" => ("Hardware errors reported", "Erros de hardware registrados"),
+                "no_errors_reported" => (
+                    "No errors reported in the test",
+                    "Nenhum erro registrado no teste",
+                ),
+                "canceled" => ("Test canceled", "Teste cancelado"),
+                "incomplete" => ("Test incomplete", "Teste incompleto"),
+                "no_record" => (
+                    "No test result found",
+                    "Nenhum resultado de teste encontrado",
+                ),
+                _ => return value.clone(),
+            };
+            (if pt { labels.1 } else { labels.0 }).into()
+        }
         Some(Value::Text(value)) if field.key == "drive_health" => {
             let labels = match value.as_str() {
                 "no_alert" => ("No alert reported", "Nenhum alerta informado"),
@@ -480,6 +497,10 @@ pub fn source_label(source: &str, pt: bool) -> &'static str {
             "Windows memory statistics",
             "Estatísticas de memória do Windows",
         ),
+        "Win32 · processor cache topology" => (
+            "Windows CPU cache topology",
+            "Topologia de cache da CPU no Windows",
+        ),
         "Win32 · GetSystemPowerStatus" => ("Windows power status", "Estado de energia do Windows"),
         "Win32 · Display settings" => (
             "Windows display settings",
@@ -490,6 +511,14 @@ pub fn source_label(source: &str, pt: bool) -> &'static str {
         "sysfs · power_supply" => ("Linux power supplies", "Fontes de energia do Linux"),
         "Windows · NVMe health log" => ("NVMe health log", "Registro de saúde NVMe"),
         "Windows · ATA SMART" => ("ATA SMART", "SMART ATA"),
+        "Windows · Memory Diagnostics event log" => (
+            "Windows System event log",
+            "Log de eventos Sistema do Windows",
+        ),
+        "Linux · EDAC memory controllers" => (
+            "Linux EDAC memory controllers",
+            "Controladores de memória EDAC do Linux",
+        ),
         "smartmontools · smartctl" => ("smartmontools", "smartmontools"),
         "WMI · MSAcpi_ThermalZoneTemperature" => (
             "Windows ACPI thermal sensors",
@@ -505,6 +534,14 @@ pub fn source_label(source: &str, pt: bool) -> &'static str {
             "Estatísticas de memória do Linux",
         ),
         "Linux · hwmon" => ("Linux hardware sensors", "Sensores de hardware do Linux"),
+        "sysfs · CPUFreq cpuinfo_cur_freq" => (
+            "Linux CPUFreq hardware reading",
+            "Leitura de hardware do CPUFreq no Linux",
+        ),
+        "sysfs · CPUFreq scaling_cur_freq" => (
+            "Linux CPUFreq driver reading",
+            "Leitura do driver CPUFreq no Linux",
+        ),
         "NVIDIA NVML" => ("NVIDIA graphics driver", "Driver gráfico da NVIDIA"),
         "sysfs · DMI" | "sysfs · SMBIOS" => ("Firmware information", "Informações do firmware"),
         "/proc/self/mountinfo · statvfs" | "sysfs · block" => (
@@ -553,6 +590,13 @@ pub fn sample_display(sample: &Sample, pt: bool) -> String {
 }
 
 pub fn sensor_value(value: f64, unit: &str, pt: bool) -> String {
+    if unit == "Hz" {
+        for (factor, scaled_unit) in [(1e6, "MHz"), (1e3, "kHz")] {
+            if value.abs() >= factor {
+                return format!("{} {scaled_unit}", decimal(value / factor, pt));
+            }
+        }
+    }
     if unit == "bit/s" {
         for (factor, scaled_unit) in [(1e9, "Gbit/s"), (1e6, "Mbit/s"), (1e3, "kbit/s")] {
             if value >= factor {

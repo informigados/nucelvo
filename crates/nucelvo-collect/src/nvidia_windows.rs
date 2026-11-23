@@ -13,13 +13,15 @@ use winreg::{
 };
 
 const SOURCE: &str = "NVIDIA NVML";
+const GRAPHICS_CLOCK: u32 = 0;
+const MEMORY_CLOCK: u32 = 2;
 type Device = *mut c_void;
 type Status = i32;
 type Init = unsafe extern "C" fn() -> Status;
 type Count = unsafe extern "C" fn(*mut u32) -> Status;
 type Handle = unsafe extern "C" fn(u32, *mut Device) -> Status;
 type Name = unsafe extern "C" fn(Device, *mut c_char, u32) -> Status;
-type Temperature = unsafe extern "C" fn(Device, u32, *mut u32) -> Status;
+type IndexedGauge = unsafe extern "C" fn(Device, u32, *mut u32) -> Status;
 type Utilization = unsafe extern "C" fn(Device, *mut Rates) -> Status;
 type Memory = unsafe extern "C" fn(Device, *mut MemoryInfo) -> Status;
 type Gauge = unsafe extern "C" fn(Device, *mut u32) -> Status;
@@ -46,7 +48,8 @@ pub(super) struct Nvml {
     count: Count,
     handle: Handle,
     name: Name,
-    temperature: Temperature,
+    temperature: IndexedGauge,
+    clock: Option<IndexedGauge>,
     utilization: Utilization,
     memory: Memory,
     fan: Gauge,
@@ -95,6 +98,10 @@ impl Nvml {
                 handle: *library.get(b"nvmlDeviceGetHandleByIndex_v2\0").ok()?,
                 name: *library.get(b"nvmlDeviceGetName\0").ok()?,
                 temperature: *library.get(b"nvmlDeviceGetTemperature\0").ok()?,
+                clock: library
+                    .get(b"nvmlDeviceGetClockInfo\0")
+                    .ok()
+                    .map(|symbol| *symbol),
                 utilization: *library.get(b"nvmlDeviceGetUtilizationRates\0").ok()?,
                 memory: *library.get(b"nvmlDeviceGetMemoryInfo\0").ok()?,
                 fan: *library.get(b"nvmlDeviceGetFanSpeed\0").ok()?,
@@ -138,7 +145,7 @@ impl Nvml {
             let mut memory = MemoryInfo::default();
             let mut fan = 0;
             let mut power = 0;
-            [
+            let mut samples = vec![
                 metric(
                     index,
                     &label,
@@ -185,8 +192,34 @@ impl Nvml {
                     (self.power)(device, &mut power),
                     Some(f64::from(power) / 1000.0),
                 ),
-            ]
-            .into()
+            ];
+            if let Some(clock) = self.clock {
+                for (domain, kind, title) in [
+                    (
+                        GRAPHICS_CLOCK,
+                        "graphics_clock",
+                        ("GPU graphics clock", "Clock gráfico da GPU"),
+                    ),
+                    (
+                        MEMORY_CLOCK,
+                        "memory_clock",
+                        ("GPU memory clock", "Clock da memória da GPU"),
+                    ),
+                ] {
+                    let mut mhz = 0;
+                    let status = clock(device, domain, &mut mhz);
+                    samples.push(metric(
+                        index,
+                        &label,
+                        kind,
+                        title,
+                        "Hz",
+                        status,
+                        Some(f64::from(mhz) * 1e6),
+                    ));
+                }
+            }
+            samples
         }
     }
 }

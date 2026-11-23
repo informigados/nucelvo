@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.0 · Memory Diagnostics and Hardware Detail Preview
+
+- Adds a Memory diagnostics section that displays the latest recorded Windows memory test result or the Linux EDAC error counters when available.
+- Adds native Windows CPU cache totals and live clock readings for supported NVIDIA GPUs on Windows, AMD GPUs on Linux, and Linux CPUFreq policies.
+- Adds a Frequencies sensor filter with chart and report support.
+- Enlarges the author photos in About and preserves their original proportions.
+
 ## 0.6.0 · Live network monitoring preview
 
 - Shows combined receive and send rates for connected Ethernet and Wi-Fi adapters on Windows and Linux.
