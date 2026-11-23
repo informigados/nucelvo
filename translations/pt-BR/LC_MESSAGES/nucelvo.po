@@ -270,6 +270,18 @@ msgid "Temperature"
 msgstr "Temperatura"
 
 msgctxt "MainWindow"
+msgid "Network"
+msgstr "Rede"
+
+msgctxt "MainWindow"
+msgid "Live network traffic"
+msgstr "Tráfego de rede em tempo real"
+
+msgctxt "MainWindow"
+msgid "Combined traffic across connected Ethernet and Wi-Fi adapters."
+msgstr "Tráfego total dos adaptadores Ethernet e Wi-Fi conectados."
+
+msgctxt "MainWindow"
 msgid "Show chart"
 msgstr "Mostrar gráfico"
 

@@ -16,6 +16,7 @@ pub struct Updates {
     pub details: Option<Vec<Field>>,
     pub fast: Option<[Sample; 2]>,
     pub logical: Option<Vec<Sample>>,
+    pub network: Option<[Sample; 2]>,
     pub native: Option<Vec<Sample>>,
 }
 
@@ -27,9 +28,15 @@ pub struct Control {
 
 pub fn fast(updates: Arc<Mutex<Updates>>, control: Arc<Control>) {
     let mut sampler = nucelvo_collect::CpuSampler::default();
+    #[cfg(any(windows, target_os = "linux"))]
+    let mut network_sampler = nucelvo_collect::NetworkSampler::default();
     while !control.stopping.load(Ordering::Relaxed) {
         if control.paused.load(Ordering::Relaxed) {
             sampler = nucelvo_collect::CpuSampler::default();
+            #[cfg(any(windows, target_os = "linux"))]
+            {
+                network_sampler = nucelvo_collect::NetworkSampler::default();
+            }
         } else {
             let raw = sampler.sample();
             let cpu = Sample {
@@ -45,7 +52,13 @@ pub fn fast(updates: Arc<Mutex<Updates>>, control: Arc<Control>) {
             };
             let memory = nucelvo_collect::memory_sample();
             let logical = sampler.logical_samples();
+            #[cfg(any(windows, target_os = "linux"))]
+            let network = network_sampler.sample();
             let mut pending = updates.lock().unwrap();
+            #[cfg(any(windows, target_os = "linux"))]
+            {
+                pending.network = Some(network);
+            }
             pending.fast = Some([cpu, memory]);
             pending.logical = Some(logical);
         }

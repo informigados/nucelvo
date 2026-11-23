@@ -5,6 +5,8 @@ use std::{
 
 use nucelvo_core::{CpuSample, Inventory, Reading};
 mod details;
+#[cfg(any(windows, target_os = "linux"))]
+pub use details::NetworkSampler;
 pub use details::{NativeSensors, base_snapshot, hardware_details, memory_sample};
 #[cfg(windows)]
 mod logical_windows;

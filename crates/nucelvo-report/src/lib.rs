@@ -553,6 +553,13 @@ pub fn sample_display(sample: &Sample, pt: bool) -> String {
 }
 
 pub fn sensor_value(value: f64, unit: &str, pt: bool) -> String {
+    if unit == "bit/s" {
+        for (factor, scaled_unit) in [(1e9, "Gbit/s"), (1e6, "Mbit/s"), (1e3, "kbit/s")] {
+            if value >= factor {
+                return format!("{} {scaled_unit}", decimal(value / factor, pt));
+            }
+        }
+    }
     let separator = if unit == "%" || unit.is_empty() {
         ""
     } else {

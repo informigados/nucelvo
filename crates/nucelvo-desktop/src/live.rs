@@ -19,12 +19,15 @@ pub fn group_matches(group: i32, sample: &Sample) -> bool {
         2 => sample.id.starts_with("memory:"),
         3 => sample.id.starts_with("gpu:"),
         4 => sample.unit == "°C",
+        5 => sample.id.starts_with("network:"),
         _ => true,
     }
 }
 
 pub fn tone(sample: &Sample) -> i32 {
-    if group_matches(4, sample) {
+    if group_matches(5, sample) {
+        if sample.id == "network:receive" { 4 } else { 5 }
+    } else if group_matches(4, sample) {
         3
     } else if group_matches(3, sample) {
         2
@@ -41,6 +44,8 @@ pub fn icon(sample: &Sample) -> i32 {
         "RPM" => 11,
         "W" => 12,
         "MiB" => 2,
+        _ if sample.id == "network:receive" => 14,
+        _ if sample.id == "network:send" => 15,
         _ if sample.id.ends_with(":fan") => 11,
         _ => 9,
     }
@@ -67,6 +72,7 @@ pub fn inline_matches(page: i32, sample: &Sample) -> bool {
                 || matches!(chip, Some("amdgpu" | "nouveau" | "i915" | "xe"))
         }
         5 => matches!(chip, Some("nvme" | "drivetemp")) && sample.unit == "°C",
+        6 => sample.id.starts_with("network:"),
         _ => false,
     }
 }
@@ -175,6 +181,19 @@ pub fn metrics(monitor: &Monitor, page: i32, paused: bool, pt: bool) -> Vec<Live
             item("", ("Fan speed", "Ventoinha"), 2, 11, gpu("fan")),
             item("", ("Power", "Potência"), 2, 12, gpu("power")),
         ],
+        6 => ["network:receive", "network:send"]
+            .into_iter()
+            .filter_map(latest)
+            .map(|sample| {
+                item(
+                    &sample.id,
+                    (&sample.name, sensor_name(sample, true)),
+                    tone(sample),
+                    icon(sample),
+                    Some(sample),
+                )
+            })
+            .collect(),
         _ => Vec::new(),
     }
 }

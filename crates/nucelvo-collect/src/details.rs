@@ -16,6 +16,8 @@ mod native;
 #[cfg(any(windows, target_os = "linux"))]
 #[path = "network.rs"]
 mod network;
+#[cfg(any(windows, target_os = "linux"))]
+pub use network::NetworkSampler;
 #[path = "power.rs"]
 mod power;
 #[cfg(any(windows, target_os = "linux"))]

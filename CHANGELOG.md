@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.0 · Live network monitoring preview
+
+- Shows combined receive and send rates for connected Ethernet and Wi-Fi adapters on Windows and Linux.
+- Adds network charts in System and a Network filter in Sensors. Both rates are available in sensor reports.
+- Preserves gaps after pauses, adapter changes, and counter resets.
+- Validates Ubuntu desktop smoke under X11 and Wayland and introduces initial macOS system, CPU, and memory collectors.
+
 ## 0.5.0 · About and system inventory preview
 
 - Adds an About tab with author credits, the installed version, and a manual check for GitHub releases.

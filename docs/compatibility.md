@@ -5,7 +5,7 @@
 | Windows 11 x64 | Tested on physical hardware with a standard user account |
 | Windows 10 22H2 x64 | Compatibility testing pending. |
 | Ubuntu 24.04 LTS x86_64 | Source build tested in a VM under X11 and Wayland, including language and theme changes, charts, export formats, and virtual Ethernet. Physical hardware and distribution packages remain pending. |
-| macOS on Apple Silicon | Initial OS, CPU, and memory collector cross-check passed. Desktop build, native runtime validation, and packaging remain pending. |
+| macOS on Apple Silicon | The desktop builds and initial system, CPU, and memory collector tests pass in GitHub Actions. Interactive validation and packaging remain pending. |
 
 Nucelvo reads system, CPU, memory, motherboard, graphics, and storage information through the operating system. It monitors CPU and memory usage and shows additional sensor readings when the system exposes them. Hardware, firmware, drivers, and permissions determine which readings are available.
 
@@ -18,6 +18,7 @@ Nucelvo reads system, CPU, memory, motherboard, graphics, and storage informatio
 | Drive health | Native NVMe health logs and ATA SMART where the Windows storage driver exposes them | Optional smartmontools integration when `smartctl` is installed and permitted to read the device |
 | Active display resolution and refresh rate | Windows desktop display settings | Pending |
 | Physical Ethernet and Wi-Fi adapters | Windows IP Helper status, negotiated link speeds, and cumulative traffic | Kernel interfaces and counters. Link speed is shown when the driver exposes it. |
+| Live network traffic | Combined receive and send rates from connected Ethernet and Wi-Fi adapters | Combined receive and send rates from connected Ethernet and Wi-Fi adapters with kernel counters |
 
 Windows NVIDIA readings were verified on a GeForce GTX 1060 6GB. The driver supplies GPU fan speed as a percentage of its maximum and power in watts. An ACPI thermal zone represents a firmware-defined part of the system. A processor package temperature requires a source that identifies the processor package.
 
@@ -32,3 +33,5 @@ On Linux, the application uses `smartctl` in common system locations when presen
 The initial macOS collector reads the OS version and build, model, uptime, total and per-logical CPU usage, and memory usage. Hardware coverage for graphics, storage, networking, power, and temperature requires additional validation and platform providers.
 
 The **Sensors** screen shows the state of each reading. A gap in the chart indicates a period without readings. Report formats and source-build instructions are listed in the [README](../README.md).
+
+Live network rates measure traffic across the connected physical adapters and include local network traffic. Rates are sampled about once per second. A change in the connected adapters, a pause, or a counter reset can leave a gap in the chart. Sensor reports use generic rate labels.

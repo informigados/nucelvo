@@ -1,7 +1,13 @@
-use nucelvo_core::{Category, Field};
+use std::{
+    collections::BTreeMap,
+    time::{Duration, Instant},
+};
+
+use nucelvo_core::{Category, Field, Sample, State};
 
 #[derive(Default)]
 struct Adapter {
+    id: Option<u64>,
     name: String,
     kind: &'static str,
     state: Option<&'static str>,
@@ -11,16 +17,86 @@ struct Adapter {
     sent: Option<u64>,
 }
 
-pub(super) fn fields() -> Vec<Field> {
+#[cfg(windows)]
+const SOURCE: &str = "Win32 · IP Helper";
+#[cfg(target_os = "linux")]
+const SOURCE: &str = "sysfs · network";
+
+fn adapters() -> Vec<Adapter> {
     #[cfg(windows)]
-    let (adapters, source) = (windows::read(), "Win32 · IP Helper");
+    return windows::read();
     #[cfg(target_os = "linux")]
-    let (adapters, source) = (
-        linux::read(std::path::Path::new("/sys/class/net")),
-        "sysfs · network",
-    );
+    return linux::read(std::path::Path::new("/sys/class/net"));
+}
+
+type Counters = BTreeMap<u64, [Option<u64>; 2]>;
+
+#[derive(Default)]
+pub struct NetworkSampler {
+    previous: Option<(Instant, Counters)>,
+}
+
+impl NetworkSampler {
+    pub fn sample(&mut self) -> [Sample; 2] {
+        let counters: Counters = adapters()
+            .into_iter()
+            .filter(|adapter| adapter.state == Some("up"))
+            .filter_map(|adapter| Some((adapter.id?, [adapter.received, adapter.sent])))
+            .collect();
+        let seen = Instant::now();
+        let at = chrono::Utc::now();
+        let (rates, missing_state) = self.rates(seen, counters);
+        let reading = |index: usize, id: &str, name: &str, pt: &str| Sample {
+            seen,
+            at,
+            id: id.into(),
+            name: name.into(),
+            name_pt: Some(pt.to_owned().into()),
+            unit: "bit/s",
+            source: SOURCE,
+            value: rates[index],
+            state: if rates[index].is_some() {
+                State::Ok
+            } else {
+                missing_state
+            },
+        };
+        [
+            reading(0, "network:receive", "Receive rate", "Taxa de recepção"),
+            reading(1, "network:send", "Send rate", "Taxa de envio"),
+        ]
+    }
+
+    fn rates(&mut self, now: Instant, counters: Counters) -> ([Option<f64>; 2], State) {
+        let old = self.previous.take();
+        if counters.is_empty() {
+            return ([None; 2], State::Unsupported);
+        }
+        let mut rates = [None; 2];
+        if let Some((previous_at, previous)) = old {
+            let elapsed = now.saturating_duration_since(previous_at);
+            if !elapsed.is_zero()
+                && elapsed <= Duration::from_secs(3)
+                && counters.keys().eq(previous.keys())
+            {
+                rates = [0, 1].map(|direction| {
+                    let bytes = counters.iter().try_fold(0.0, |sum, (id, current)| {
+                        let delta = current[direction]?.checked_sub(previous[id][direction]?)?;
+                        Some(sum + delta as f64)
+                    })?;
+                    Some(bytes * 8.0 / elapsed.as_secs_f64())
+                });
+            }
+        }
+        self.previous = Some((now, counters));
+        (rates, State::TemporarilyUnavailable)
+    }
+}
+
+pub(super) fn fields() -> Vec<Field> {
+    let source = SOURCE;
     let mut fields = Vec::new();
-    for (index, adapter) in adapters.into_iter().enumerate() {
+    for (index, adapter) in adapters().into_iter().enumerate() {
         let text = |key, labels, value| {
             Field::text(Category::System, 20_000 + index, key, labels, value, source)
         };
@@ -96,6 +172,46 @@ pub(super) fn fields() -> Vec<Field> {
     fields
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn rates_handle_idle_traffic_resets_and_adapter_changes() {
+        let mut sampler = NetworkSampler::default();
+        let start = Instant::now();
+        let mut read = |seconds, entries: &[(u64, [Option<u64>; 2])]| {
+            sampler
+                .rates(
+                    start + Duration::from_secs(seconds),
+                    entries.iter().copied().collect(),
+                )
+                .0
+        };
+        assert_eq!(read(0, &[(1, [Some(100), Some(200)])]), [None, None]);
+        assert_eq!(
+            read(2, &[(1, [Some(1100), Some(200)])]),
+            [Some(4000.0), Some(0.0)]
+        );
+        assert_eq!(read(3, &[(1, [Some(5), Some(300)])]), [None, Some(800.0)]);
+        assert_eq!(read(4, &[(2, [Some(9000), None])]), [None, None]);
+        assert_eq!(read(5, &[(2, [Some(9100), Some(50)])]), [Some(800.0), None]);
+        assert_eq!(read(9, &[(2, [Some(9800), Some(100)])]), [None, None]);
+        assert_eq!(
+            read(10, &[(2, [Some(9900), Some(110)]), (3, [Some(1), Some(2)])]),
+            [None, None]
+        );
+        assert_eq!(
+            read(
+                11,
+                &[(2, [Some(10000), Some(115)]), (3, [Some(11), Some(7)])]
+            ),
+            [Some(880.0), Some(80.0)]
+        );
+        assert_eq!(read(12, &[]), [None, None]);
+    }
+}
+
 #[cfg(windows)]
 mod windows {
     use super::Adapter;
@@ -169,6 +285,8 @@ mod windows {
             adapters.push((
                 row.InterfaceIndex,
                 Adapter {
+                    // SAFETY: Value is the integer view of the populated LUID.
+                    id: Some(unsafe { row.InterfaceLuid.Value }),
                     name: String::from_utf16_lossy(name),
                     kind,
                     state,
@@ -225,6 +343,7 @@ mod linux {
                     None
                 };
                 Some(Adapter {
+                    id: number("ifindex"),
                     name: path.file_name()?.to_string_lossy().into_owned(),
                     kind: if path.join("wireless").exists() || path.join("phy80211").exists() {
                         "wifi"

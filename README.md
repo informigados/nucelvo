@@ -11,7 +11,7 @@ Free, open-source hardware inventory and live sensor monitoring for Windows and 
 
 ## ⬇️ Download for Windows
 
-The [GitHub release](https://github.com/informigados/nucelvo/releases/tag/v0.5.0) includes a Windows x64 installer, a portable ZIP, and SHA-256 checksums. The installer runs for the current user. To use the portable edition, extract the ZIP and open `nucelvo.exe`.
+The [GitHub release](https://github.com/informigados/nucelvo/releases/tag/v0.6.0) includes a Windows x64 installer, a portable ZIP, and SHA-256 checksums. The installer runs for the current user. To use the portable edition, extract the ZIP and open `nucelvo.exe`.
 
 ## 🖥️ What you can do
 
@@ -21,6 +21,7 @@ The [GitHub release](https://github.com/informigados/nucelvo/releases/tag/v0.5.0
 - Check drive alerts, power-on hours, SSD endurance used, and other storage health readings when available. The System tab also shows power and battery information.
 - Review physical network adapters, negotiated link speed, and cumulative traffic in System. On Windows, System also shows active displays and their current settings.
 - Check for new GitHub releases on demand from About.
+- See live receive and send rates under System. Select a rate to open its history, or choose Network in Sensors to view and export readings.
 - Preview and save reports as JSON, TXT, CSV, or standalone HTML. Share-safe reports omit serial numbers, volume names, and volume paths by default.
 - Run offline without an account. The interface opens in English and follows the system theme until you choose light or dark. The language menu also offers Brazilian Portuguese.
 

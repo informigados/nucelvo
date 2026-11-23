@@ -213,7 +213,7 @@ export component MainWindow inherits Window {
     ];
     private property <[int]> tab-icons: [0, 1, 2, 3, 4, 5, 6, 7, 8, 13];
     private property <[string]> times: [@tr("Last minute"), @tr("Last 5 minutes"), @tr("Last 15 minutes")];
-    private property <[string]> sensor-groups: [@tr("All sensors"), "CPU", @tr("Memory"), @tr("Graphics"), @tr("Temperature")];
+    private property <[string]> sensor-groups: [@tr("All sensors"), "CPU", @tr("Memory"), @tr("Graphics"), @tr("Temperature"), @tr("Network")];
     private property <[string]> export-scopes: [@tr("Full inventory"), @tr("One category"), @tr("Current sensor readings"), @tr("Sensor history · 5 minutes"), @tr("Sensor history · 15 minutes")];
     in property <bool> narrow;
     out property <bool> dark-mode: Palette.color-scheme == ColorScheme.dark;
@@ -228,7 +228,8 @@ export component MainWindow inherits Window {
     private property <color> rail: dark ? #182923 : #edf5f0;
     private property <color> raised: dark ? #1a3029 : #e7f3ec;
     private property <color> accent: dark ? #86e9c4 : #08604e;
-    private property <[color]> metric-colors: [accent, dark ? #9acbfd : #244f91, dark ? #cbb7ff : #603b9b, dark ? #ffc589 : #935019];
+    private property <[color]> metric-colors: [accent, dark ? #9acbfd : #244f91, dark ? #cbb7ff : #603b9b, dark ? #ffc589 : #935019,
+        dark ? #74ddd0 : #08746b, dark ? #aabfff : #3c50a0];
     background: surface;
 
     callback navigate(int);
@@ -440,14 +441,14 @@ export component MainWindow inherits Window {
                         visible: root.page < 7;
                         height: root.page < 7 ? self.preferred-height : 0px;
                         spacing: 10px;
-                        if (root.page == 0 || root.page == 1 || root.page == 2 || root.page == 4) && root.live-metrics.length > 0
+                        if (root.page == 0 || root.page == 1 || root.page == 2 || root.page == 4 || root.page == 6) && root.live-metrics.length > 0
                            && (!root.inline-chart-open || root.height >= 680px) : VerticalLayout {
                             spacing: 4px;
                             HorizontalLayout {
                                 spacing: 8px;
                                 Text {
                                     horizontal-stretch: 1;
-                                    text: root.paused ? @tr("Monitoring paused") : @tr("Live readings");
+                                    text: root.paused ? @tr("Monitoring paused") : root.page == 6 ? @tr("Live network traffic") : @tr("Live readings");
                                     color: root.ink;
                                     font-weight: 650;
                                     vertical-alignment: center;
@@ -465,6 +466,12 @@ export component MainWindow inherits Window {
                                     overflow: elide;
                                 }
                             }
+                            if root.page == 6 : Text {
+                                text: @tr("Combined traffic across connected Ethernet and Wi-Fi adapters.");
+                                color: root.muted;
+                                font-size: 12px;
+                                wrap: word-wrap;
+                            }
                             Rectangle { height: 1px; background: root.line; }
                             HorizontalLayout {
                                 spacing: 8px;
@@ -475,7 +482,7 @@ export component MainWindow inherits Window {
                                     ink: root.ink;
                                     muted: root.muted;
                                     hover: root.raised;
-                                    show-detail: root.page != 4;
+                                    show-detail: root.page != 4 && root.page != 6;
                                     compact: root.narrow && root.page == 4;
                                     activated => { root.open-sensor(metric.key); }
                                 }

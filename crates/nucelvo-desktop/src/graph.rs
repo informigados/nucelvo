@@ -40,13 +40,18 @@ pub fn plot(series: &Series, now: Instant, range: Duration, pt: bool) -> Plot {
     };
     let (low, high) = if last.unit == "%" {
         (0.0, maximum.max(100.0))
+    } else if last.unit == "bit/s" {
+        (0.0, (maximum * 1.12).max(1.0))
     } else {
         let pad = ((maximum - minimum) * 0.12).max(0.1);
         (minimum - pad, maximum + pad)
     };
     result.low = sensor_value(low, last.unit, pt);
     result.high = sensor_value(high, last.unit, pt);
-    let cadence = if last.id.starts_with("cpu:") || last.id.starts_with("memory:") {
+    let cadence = if last.id.starts_with("cpu:")
+        || last.id.starts_with("memory:")
+        || last.id.starts_with("network:")
+    {
         1
     } else {
         5

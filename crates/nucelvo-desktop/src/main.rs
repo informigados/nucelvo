@@ -227,7 +227,7 @@ fn inventory(app: &mut App, window: &MainWindow) {
 fn monitor(app: &mut App, window: &MainWindow, rebuild_choices: bool) {
     let pt = window.get_portuguese();
     let page = window.get_page();
-    if matches!(page, 0 | 1 | 2 | 4) {
+    if matches!(page, 0 | 1 | 2 | 4 | 6) {
         let metrics = live::metrics(&app.monitor, page, window.get_paused(), pt);
         if page == 4 {
             window.set_live_device(
@@ -822,6 +822,12 @@ fn update(window: &MainWindow, app: &mut App, updates: workers::Updates) {
             app.monitor.record(sample);
         }
     }
+    if let Some(samples) = updates.network {
+        for sample in samples {
+            app.monitor.record(sample);
+        }
+        changed = true;
+    }
     if let Some(samples) = updates.native {
         let missing = app
             .monitor
@@ -830,6 +836,7 @@ fn update(window: &MainWindow, app: &mut App, updates: workers::Updates) {
             .filter_map(|(id, series)| {
                 let last = series.points.back()?;
                 (!id.starts_with("cpu:")
+                    && !id.starts_with("network:")
                     && id != "memory:load"
                     && last.state != State::Stale
                     && !samples.iter().any(|sample| sample.id == *id))
@@ -953,10 +960,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             };
             ["temperature", "load", "vram", "fan", "power"].into_iter().all(has_reading)
         };
+        let network_ready = !require_network || {
+            let app = app.borrow();
+            ["network:receive", "network:send"].iter().all(|id| {
+                app.monitor.series.get(*id)
+                    .and_then(|series| series.points.back())
+                    .is_some_and(|point| point.state == State::Ok && point.value.is_some())
+            })
+        };
         if smoke
             && window.get_ready()
             && (!require_logical || logical > 0)
             && nvidia_ready
+            && network_ready
             && app
                 .borrow()
                 .monitor
@@ -1005,6 +1021,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 ["Adapter", "Link status", "Data received by the adapter", "Data sent by the adapter"]
                     .iter().all(|label| rows.iter().any(|row| row.label == *label
                         && row.group.starts_with("Network adapter ") && row.copyable))
+            };
+            let network_chart = !require_network || {
+                window.invoke_open_sensor("network:receive".into());
+                window.get_inline_chart_open() && window.get_has_graph()
+                    && window.get_metric_icon() == 14
             };
             window.invoke_navigate(SENSOR_PAGE);
             let chart_visible = window.get_has_graph();
@@ -1067,6 +1088,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 ("Storage layout", storage_layout),
                 ("uptime explanation", uptime_note),
                 ("network inventory", network_inventory),
+                ("network rate chart", network_chart),
                 ("hardware inventory", real),
                 ("Sensors chart", chart_visible),
                 ("report formats", saved && !report.is_empty()),
