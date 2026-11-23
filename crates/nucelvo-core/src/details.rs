@@ -125,14 +125,16 @@ impl Field {
 
     pub fn group(&self, pt: bool) -> String {
         let label = self.category.label(pt);
-        match self.category {
-            Category::Storage if self.device >= 10_000 => {
-                format!("{label} · Volume {}", self.device - 9_999)
+        let (device, number) = match self.category {
+            Category::Storage if self.device >= 10_000 => ("Volume", self.device - 9_999),
+            Category::Storage => (if pt { "Unidade" } else { "Drive" }, self.device + 1),
+            Category::Graphics => (if pt { "Adaptador" } else { "Adapter" }, self.device + 1),
+            Category::Memory if self.device > 0 => {
+                (if pt { "Módulo" } else { "Module" }, self.device)
             }
-            Category::Storage | Category::Graphics => format!("{label} · {}", self.device + 1),
-            Category::Memory if self.device > 0 => format!("{label} · {}", self.device),
-            _ => label.to_owned(),
-        }
+            _ => return label.to_owned(),
+        };
+        format!("{label} · {device} {number}")
     }
 }
 
@@ -151,7 +153,7 @@ pub struct Sample {
     pub id: String,
     pub name: String,
     #[serde(skip)]
-    pub name_pt: Option<&'static str>,
+    pub name_pt: Option<std::borrow::Cow<'static, str>>,
     pub unit: &'static str,
     pub source: &'static str,
     pub state: State,

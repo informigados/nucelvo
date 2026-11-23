@@ -134,8 +134,8 @@ msgid "Open folder"
 msgstr "Abrir pasta"
 
 msgctxt "MainWindow"
-msgid "Live CPU usage"
-msgstr "Uso da CPU em tempo real"
+msgid "Live readings"
+msgstr "Leituras em tempo real"
 
 msgctxt "MainWindow"
 msgid "Search inventory"
@@ -250,8 +250,20 @@ msgid "Category"
 msgstr "Categoria"
 
 msgctxt "MainWindow"
-msgid "CPU monitoring paused"
-msgstr "Monitoramento da CPU pausado"
+msgid "Monitoring paused"
+msgstr "Monitoramento pausado"
+
+msgctxt "MainWindow"
+msgid "All sensors"
+msgstr "Todos os sensores"
+
+msgctxt "MainWindow"
+msgid "Sensor group"
+msgstr "Grupo de sensores"
+
+msgctxt "MainWindow"
+msgid "Temperature"
+msgstr "Temperatura"
 
 msgctxt "MainWindow"
 msgid "You don't have permission to save here. Choose another folder."

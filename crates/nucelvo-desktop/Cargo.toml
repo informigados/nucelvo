@@ -11,11 +11,17 @@ nucelvo-report = { path = "../nucelvo-report" }
 chrono.workspace = true
 rfd = "=0.18.0"
 arboard = { version = "3.6", default-features = false, features = ["wayland-data-control"] }
-slint = { version = "=1.16.1", default-features = false, features = ["std", "backend-winit", "renderer-software", "accessibility", "compat-1-2"] }
+slint = { version = "=1.19.0", default-features = false, features = ["std", "backend-winit", "renderer-software", "accessibility", "compat-1-2"] }
 directories = "6"
 serde.workspace = true
 serde_json = "1"
 tempfile = "3"
 
+[target.'cfg(windows)'.dependencies]
+raw-window-handle = "0.6"
+slint = { version = "=1.19.0", default-features = false, features = ["raw-window-handle-06"] }
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Graphics_Gdi"] }
+
 [build-dependencies]
-slint-build = "=1.16.1"
+embed-resource = "=3.0.11"
+slint-build = "=1.19.0"

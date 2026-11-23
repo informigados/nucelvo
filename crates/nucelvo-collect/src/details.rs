@@ -72,8 +72,34 @@ pub fn hardware_details() -> Vec<Field> {
     native::hardware_details()
 }
 
-pub fn native_sensors() -> Vec<Sample> {
-    native::sensors()
+#[cfg(windows)]
+#[path = "nvidia_windows.rs"]
+mod nvidia;
+
+#[cfg_attr(not(windows), derive(Default))]
+pub struct NativeSensors {
+    #[cfg(windows)]
+    nvidia: Option<nvidia::Nvml>,
+}
+
+impl NativeSensors {
+    pub fn sample(&self) -> Vec<Sample> {
+        let samples = native::sensors();
+        #[cfg(windows)]
+        if let Some(nvidia) = &self.nvidia {
+            return samples.into_iter().chain(nvidia.sample()).collect();
+        }
+        samples
+    }
+}
+
+#[cfg(windows)]
+impl Default for NativeSensors {
+    fn default() -> Self {
+        Self {
+            nvidia: nvidia::Nvml::open(),
+        }
+    }
 }
 
 pub fn memory_sample() -> Sample {
@@ -97,7 +123,7 @@ fn sample(
     Sample {
         id,
         name,
-        name_pt,
+        name_pt: name_pt.map(Into::into),
         unit,
         source: reading.source,
         at: Utc::now(),

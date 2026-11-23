@@ -432,6 +432,7 @@ pub fn source_label(source: &str, pt: bool) -> &'static str {
             "Estatísticas de memória do Linux",
         ),
         "Linux · hwmon" => ("Linux hardware sensors", "Sensores de hardware do Linux"),
+        "NVIDIA NVML" => ("NVIDIA graphics driver", "Driver gráfico da NVIDIA"),
         "sysfs · DMI" | "sysfs · SMBIOS" => ("Firmware information", "Informações do firmware"),
         "/proc/self/mountinfo · statvfs" | "sysfs · block" => (
             "Linux storage information",
@@ -465,7 +466,7 @@ pub fn source_label(source: &str, pt: bool) -> &'static str {
 
 pub fn sensor_name(sample: &Sample, pt: bool) -> &str {
     if pt {
-        sample.name_pt.unwrap_or(&sample.name)
+        sample.name_pt.as_deref().unwrap_or(&sample.name)
     } else {
         &sample.name
     }

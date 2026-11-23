@@ -7,12 +7,17 @@
 
 Free, open-source hardware inventory and live sensor monitoring for Windows and Linux. Built by **INformigados**. Pronounced “nu-CEL-vo.”
 
-**Source preview.** Tested on Windows 11 x64. See the [compatibility notes](docs/compatibility.md) for Ubuntu and hardware coverage.
+**Preview release.** Tested on Windows 11 x64. See the [compatibility notes](docs/compatibility.md) for Ubuntu and hardware coverage.
+
+## ⬇️ Download for Windows
+
+The [GitHub release](https://github.com/informigados/nucelvo/releases/tag/v0.2.0) includes a Windows x64 installer, a portable ZIP, and SHA-256 checksums. The installer runs for the current user. To use the portable edition, extract the ZIP and open `nucelvo.exe`.
 
 ## 🖥️ What you can do
 
 - Browse your CPU, memory, motherboard, graphics, storage, and system information. Search the inventory and copy individual values.
-- Watch CPU and memory usage and any hardware sensors that your system exposes. Filter readings, pause collection, and view up to 15 minutes of history alongside session statistics.
+- Check CPU, memory, graphics usage, and available temperatures in Overview. Open a reading to see its source, session statistics, and up to 15 minutes of history.
+- On supported NVIDIA cards in Windows, monitor GPU temperature, usage, VRAM usage, fan speed, and power from the installed graphics driver. Sensor filters group readings by component or temperature.
 - Preview and save reports as JSON, TXT, CSV, or standalone HTML. Share-safe reports omit serial numbers, volume names, and volume paths by default.
 - Run offline without an account. The interface follows the system theme and opens in English. Select **Português (Brasil)** in the language menu to switch languages.
 
@@ -42,13 +47,13 @@ cargo run --locked
 | Resource | What it covers |
 | --- | --- |
 | [Compatibility](docs/compatibility.md) | Platform support and hardware coverage |
-| [Changelog](CHANGELOG.md) | Notes for the initial source preview |
+| [Changelog](CHANGELOG.md) | Changes by release |
 | [Contributing](CONTRIBUTING.md) | Development checks, bug reports, and pull requests |
 | [Translations](translations/README.md) | Updating and reviewing language catalogs |
 
 ## 🇧🇷 Português (Brasil)
 
-O Nucelvo é um aplicativo gratuito da INformigados para consultar o hardware e acompanhar sensores em tempo real. Ele funciona offline e permite pesquisar, copiar dados e exportar relatórios. Na primeira abertura, o aplicativo usa inglês. Selecione **Português (Brasil)** no menu de idioma para mudar a interface.
+O Nucelvo é um aplicativo gratuito da INformigados para consultar o hardware e acompanhar sensores em tempo real. Na **Visão geral**, acompanhe o uso da CPU, da memória e da GPU, assim como as temperaturas disponíveis. Em **Sensores**, consulte a origem e o histórico de cada leitura. O aplicativo funciona offline, permite pesquisar e copiar dados e exporta relatórios. Na primeira abertura, selecione **Português (Brasil)** no menu de idioma para mudar a interface. [Baixar para Windows](https://github.com/informigados/nucelvo/releases/tag/v0.2.0)
 
 ## 📄 License and credits
 

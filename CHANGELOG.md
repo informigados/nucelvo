@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.0 · Windows installer preview
+
+- Restores the full window on Windows after minimizing, including when the window was maximized.
+- Adds live CPU and memory usage, GPU usage, and available temperature readings to Overview.
+- Groups inventory fields by device and adds component and temperature filters to Sensors. Select a live reading to open its history.
+- Adds NVIDIA GPU temperature, usage, VRAM usage, fan speed, and power on Windows where the installed driver exposes them.
+- Includes a per-user Windows 11 x64 installer, a portable ZIP, and SHA-256 checksums. The preview binaries are unsigned.
+
 ## 0.1.0 · Initial source preview
 
 ### Included

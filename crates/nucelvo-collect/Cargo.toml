@@ -9,6 +9,7 @@ nucelvo-core.workspace = true
 chrono.workspace = true
 
 [target.'cfg(windows)'.dependencies]
+libloading = "0.8.9"
 winreg = "0.55"
 wmi = { version = "=0.18.4", default-features = false }
 futures = "0.3"

@@ -5,7 +5,69 @@ export struct Row {
     value: string,
     detail: string,
     group: string,
+    group-start: bool,
     copyable: bool,
+}
+
+export struct LiveMetric {
+    title: string,
+    value: string,
+    detail: string,
+    key: string,
+    tone: int,
+    available: bool,
+}
+
+component MetricTile inherits Rectangle {
+    in property <LiveMetric> metric;
+    in property <color> accent;
+    in property <color> ink;
+    in property <color> muted;
+    in property <color> hover;
+    callback activated();
+    min-width: 0px;
+    preferred-width: 120px;
+    horizontal-stretch: 1;
+    height: 80px;
+    border-radius: 5px;
+    background: touch.has-hover || keyboard.has-focus ? root.hover : transparent;
+    accessible-role: button;
+    accessible-enabled: root.metric.key != "";
+    accessible-label: root.metric.title + " · " + root.metric.value + (root.metric.detail == "" ? "" : " · " + root.metric.detail);
+    accessible-action-default => { if (root.metric.key != "") { root.activated(); } }
+    forward-focus: keyboard;
+    VerticalLayout {
+        padding: 8px;
+        spacing: 3px;
+        alignment: center;
+        Text { text: root.metric.title; color: root.ink; font-size: 13px; font-weight: 600; overflow: elide; accessible-role: none; }
+        Text {
+            text: root.metric.value;
+            color: root.metric.available ? root.accent : root.muted;
+            font-size: root.metric.available ? 22px : 15px;
+            font-weight: 700;
+            height: 28px;
+            vertical-alignment: center;
+            overflow: elide;
+            accessible-role: none;
+        }
+        Text { text: root.metric.detail; height: 14px; color: root.muted; font-size: 11px; overflow: elide; accessible-role: none; }
+    }
+    keyboard := FocusScope {
+        enabled: root.metric.key != "";
+        key-pressed(event) => {
+            if (event.text == Key.Return || event.text == " ") {
+                root.activated();
+                return accept;
+            }
+            return reject;
+        }
+    }
+    touch := TouchArea {
+        enabled: root.metric.key != "";
+        mouse-cursor: pointer;
+        clicked => { keyboard.focus(); root.activated(); }
+    }
 }
 
 component NavItem inherits Rectangle {
@@ -77,7 +139,10 @@ export component MainWindow inherits Window {
     in property <[string]> metric-options;
     in property <int> metric-index: -1;
     in property <string> current-value: "—";
-    in property <string> cpu-value: "—";
+    in property <[LiveMetric]> live-metrics;
+    in property <int> sensor-group;
+    in property <int> metric-tone;
+    in-out property <string> metric-search-text;
     in property <string> low-value: "—";
     in property <string> high-value: "—";
     in property <string> average-value: "—";
@@ -105,6 +170,7 @@ export component MainWindow inherits Window {
         @tr("Graphics"), @tr("Storage"), @tr("System"), @tr("Sensors"), @tr("Export")
     ];
     private property <[string]> times: [@tr("Last minute"), @tr("Last 5 minutes"), @tr("Last 15 minutes")];
+    private property <[string]> sensor-groups: [@tr("All sensors"), "CPU", @tr("Memory"), @tr("Graphics"), @tr("Temperature")];
     private property <[string]> export-scopes: [@tr("Full inventory"), @tr("One category"), @tr("Current sensor readings"), @tr("Sensor history · 5 minutes"), @tr("Sensor history · 15 minutes")];
     in property <bool> narrow;
     private property <bool> dark: Palette.color-scheme == ColorScheme.dark;
@@ -115,6 +181,7 @@ export component MainWindow inherits Window {
     private property <color> rail: dark ? #182923 : #edf5f0;
     private property <color> raised: dark ? #1a3029 : #e7f3ec;
     private property <color> accent: dark ? #86e9c4 : #08604e;
+    private property <[color]> metric-colors: [accent, dark ? #9acbfd : #244f91, dark ? #cbb7ff : #603b9b, dark ? #ffc589 : #935019];
     background: surface;
 
     callback navigate(int);
@@ -126,6 +193,8 @@ export component MainWindow inherits Window {
     callback metric(int);
     callback range-changed(int);
     callback metric-filter(string);
+    callback sensor-group-changed(int);
+    callback open-sensor(string);
     callback prepare-export(int, int, bool, int);
     callback invalidate-export();
     callback save-export();
@@ -265,26 +334,33 @@ export component MainWindow inherits Window {
                         visible: root.page < 7;
                         height: root.page < 7 ? self.preferred-height : 0px;
                         spacing: 10px;
-                        if root.page == 0 : Rectangle {
-                            height: 74px;
-                            border-radius: 8px;
-                            background: root.raised;
+                        if (root.page == 0 || root.page == 1 || root.page == 2 || root.page == 4) && root.live-metrics.length > 0 : VerticalLayout {
+                            spacing: 4px;
                             HorizontalLayout {
-                                padding-left: 16px;
-                                padding-right: 16px;
-                                spacing: 16px;
-                                VerticalLayout {
-                                    alignment: center;
-                                    spacing: 4px;
-                                    Text { text: root.paused ? @tr("CPU monitoring paused") : @tr("Live CPU usage"); color: root.ink; font-weight: 650; }
+                                spacing: 8px;
+                                Text {
+                                    horizontal-stretch: 1;
+                                    text: root.paused ? @tr("Monitoring paused") : @tr("Live readings");
+                                    color: root.ink;
+                                    font-weight: 650;
+                                    vertical-alignment: center;
                                 }
-                                Rectangle { horizontal-stretch: 1; }
-                                Text { text: root.cpu-value; color: root.accent; font-size: 26px; font-weight: 700; vertical-alignment: center; }
-                                VerticalLayout {
-                                    alignment: center;
-                                    Button { text: @tr("Sensors"); clicked => { root.navigate(7); } }
+                                if root.page == 0 : Button { text: @tr("Sensors"); clicked => { root.navigate(7); } }
+                            }
+                            Rectangle { height: 1px; background: root.line; }
+                            HorizontalLayout {
+                                spacing: 8px;
+                                alignment: root.live-metrics.length == 1 ? start : stretch;
+                                for metric in root.live-metrics : MetricTile {
+                                    metric: metric;
+                                    accent: root.metric-colors[metric.tone];
+                                    ink: root.ink;
+                                    muted: root.muted;
+                                    hover: root.raised;
+                                    activated => { root.open-sensor(metric.key); }
                                 }
                             }
+                            Rectangle { height: 1px; background: root.line; }
                         }
                         HorizontalLayout {
                             spacing: 12px;
@@ -311,19 +387,33 @@ export component MainWindow inherits Window {
                             text: root.refreshing ? @tr("Collecting inventory…") : @tr("No matching fields.");
                         }
                         ListView {
-                            viewport-width: self.visible-width;
+                            content-width: self.visible-width;
                             for item in root.rows : Rectangle {
-                                height: 58px;
+                                height: item.group-start ? 94px : 58px;
                                 Rectangle { y: parent.height - 1px; height: 1px; background: root.line; }
+                                if item.group-start : Text {
+                                    x: 8px;
+                                    y: 6px;
+                                    height: 26px;
+                                    width: parent.width - 16px;
+                                    text: item.group;
+                                    color: root.accent;
+                                    font-size: 12px;
+                                    font-weight: 700;
+                                    vertical-alignment: center;
+                                    overflow: elide;
+                                }
                                 HorizontalLayout {
+                                    y: item.group-start ? 36px : 0px;
+                                    height: 58px;
                                     spacing: 12px;
+                                    padding-left: 8px;
                                     padding-right: 8px;
                                     VerticalLayout {
                                         width: 182px;
                                         alignment: center;
                                         spacing: 3px;
                                         Text { text: item.label; color: root.ink; font-weight: 600; wrap: word-wrap; }
-                                        Text { text: item.group; color: root.muted; font-size: 11px; overflow: elide; }
                                     }
                                     VerticalLayout {
                                         horizontal-stretch: 1;
@@ -355,15 +445,15 @@ export component MainWindow inherits Window {
                             metric-search := LineEdit {
                                 placeholder-text: @tr("Filter sensors");
                                 accessible-label: @tr("Filter sensors");
+                                text <=> root.metric-search-text;
                                 edited(value) => { root.metric-filter(value); }
                             }
                             ComboBox {
-                                horizontal-stretch: 1;
-                                accessible-label: @tr("Sensor");
-                                model: root.metric-options;
-                                current-index: root.metric-index;
-                                enabled: root.metric-options.length > 0;
-                                selected(_) => { root.metric(self.current-index); }
+                                width: 144px;
+                                accessible-label: @tr("Sensor group");
+                                model: root.sensor-groups;
+                                current-index: root.sensor-group;
+                                selected(_) => { root.sensor-group-changed(self.current-index); }
                             }
                             ComboBox {
                                 width: 156px;
@@ -373,12 +463,19 @@ export component MainWindow inherits Window {
                                 selected(_) => { root.range-changed(self.current-index); }
                             }
                         }
+                        ComboBox {
+                            accessible-label: @tr("Sensor");
+                            model: root.metric-options;
+                            current-index: root.metric-index;
+                            enabled: root.metric-options.length > 0;
+                            selected(_) => { root.metric(self.current-index); }
+                        }
                     }
 
                     if root.page == 7 : ScrollView {
                         vertical-stretch: 1;
-                        viewport-width: self.visible-width;
-                        viewport-height: max(self.visible-height, 315px);
+                        content-width: self.visible-width;
+                        content-height: max(self.visible-height, 315px);
                         VerticalLayout {
                             alignment: start;
                             padding-right: 8px;
@@ -398,7 +495,7 @@ export component MainWindow inherits Window {
                                         alignment: center;
                                         Text { text: stat; color: root.muted; font-size: 12px; overflow: elide; }
                                         Text {
-                                            color: root.ink;
+                                            color: index == 0 ? root.metric-colors[root.metric-tone] : root.ink;
                                             font-weight: 650;
                                             font-size: 19px;
                                             overflow: elide;
@@ -435,7 +532,7 @@ export component MainWindow inherits Window {
                                             width: parent.width;
                                             height: parent.height;
                                             commands: root.graph;
-                                            stroke: root.accent;
+                                            stroke: root.metric-colors[root.metric-tone];
                                             stroke-width: 1.6px;
                                             stroke-line-cap: round;
                                             fill: transparent;
@@ -534,7 +631,7 @@ export component MainWindow inherits Window {
                         }
                         ListView {
                             vertical-stretch: 1;
-                            viewport-width: self.visible-width;
+                            content-width: self.visible-width;
                             for entry in root.preview : Rectangle {
                                 height: 42px;
                                 Rectangle { y: parent.height - 1px; height: 1px; background: root.line; }

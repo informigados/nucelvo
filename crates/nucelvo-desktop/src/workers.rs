@@ -35,7 +35,7 @@ pub fn fast(updates: Arc<Mutex<Updates>>, control: Arc<Control>) {
             let cpu = Sample {
                 id: "cpu:load".into(),
                 name: "CPU usage".into(),
-                name_pt: Some("Uso da CPU"),
+                name_pt: Some("Uso da CPU".into()),
                 at: Utc::now(),
                 seen: Instant::now(),
                 unit: "%",
@@ -54,6 +54,7 @@ pub fn fast(updates: Arc<Mutex<Updates>>, control: Arc<Control>) {
 }
 
 pub fn hardware(updates: Arc<Mutex<Updates>>, control: Arc<Control>, requests: mpsc::Receiver<()>) {
+    let sensors = nucelvo_collect::NativeSensors::default();
     let mut refresh = true;
     let mut next_sensors = Instant::now();
     while !control.stopping.load(Ordering::Relaxed) {
@@ -65,7 +66,7 @@ pub fn hardware(updates: Arc<Mutex<Updates>>, control: Arc<Control>, requests: m
         }
         if Instant::now() >= next_sensors {
             if !control.paused.load(Ordering::Relaxed) {
-                let native = nucelvo_collect::native_sensors();
+                let native = sensors.sample();
                 updates.lock().unwrap().native = Some(native);
             }
             next_sensors = Instant::now() + Duration::from_secs(5);

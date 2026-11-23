@@ -4,7 +4,7 @@ Nucelvo’s source code is covered by [Apache License 2.0](LICENSE). Third-party
 
 ## Slint
 
-Nucelvo uses Slint **1.16.1** under the **Slint Royalty-free Desktop, Mobile, and Web Applications License 2.0**. The official Made with Slint badge appears in the public-facing [README](README.md). [Slint terms](https://slint.dev/terms-and-conditions#slint-royalty-free-license-2-0) · [Upstream release](https://github.com/slint-ui/slint/tree/v1.16.1)
+Nucelvo uses Slint **1.19.0** under the **Slint Royalty-free Desktop, Mobile, and Web Applications License 2.0**. The official Made with Slint badge appears in the [README](README.md). [Slint terms](https://slint.dev/terms-and-conditions#slint-royalty-free-license-2-0) · [Upstream release](https://github.com/slint-ui/slint/tree/v1.19.0)
 
 ## Dependency records
 
@@ -17,7 +17,10 @@ Nucelvo uses Slint **1.16.1** under the **Slint Royalty-free Desktop, Mobile, an
 | serde, serde_json, tempfile | 1.0.229, 1.0.154, 3.27.0 | MIT or Apache 2.0 |
 | windows, windows-sys, wmi | 0.62.2, 0.61.2, 0.18.4 | MIT or Apache 2.0 |
 | rfd, winreg | 0.18.0, 0.55.0 | MIT |
+| libloading | 0.8.9 | ISC |
 | csv | 1.4.0 | Unlicense or MIT |
-| slint, slint-build | 1.16.1 | Slint Royalty-free License 2.0 for this project’s use |
+| slint, slint-build | 1.19.0 | Slint Royalty-free License 2.0 for this project’s use |
 
 The bundled [Made with Slint artwork](assets/brand/made-with-slint.png) is upstream Slint artwork used for attribution. [Official attribution artwork](https://github.com/slint-ui/slint/blob/v1.16.1/logo/MadeWithSlint-logo-whitebg.png)
+
+The Windows packages include individual runtime dependency license texts and NSIS installation runtime notices. When a compatible NVIDIA driver is present, Nucelvo loads NVML from that driver. The NVIDIA library is supplied by the installed driver. [Dependency license files](packaging/windows/licenses/README.md) · [NVIDIA documentation](https://docs.nvidia.com/deploy/nvml-api/latest/nvml-api-reference.html)

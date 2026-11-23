@@ -37,7 +37,7 @@ impl LogicalSampler {
                 None => (
                     "cpu:logical:status".into(),
                     "Logical CPU counters".into(),
-                    Some("Contadores de CPUs lógicas"),
+                    Some("Contadores de CPUs lógicas".into()),
                 ),
             };
             Sample {

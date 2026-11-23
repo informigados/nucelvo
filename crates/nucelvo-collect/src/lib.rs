@@ -5,7 +5,7 @@ use std::{
 
 use nucelvo_core::{CpuSample, Inventory, Reading};
 mod details;
-pub use details::{base_snapshot, hardware_details, memory_sample, native_sensors};
+pub use details::{NativeSensors, base_snapshot, hardware_details, memory_sample};
 #[cfg(windows)]
 mod logical_windows;
 

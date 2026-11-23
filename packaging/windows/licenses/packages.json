@@ -1,0 +1,7 @@
+{
+  "accesskit": ["accesskit 0.25.2", "accesskit_consumer 0.39.2", "accesskit_windows 0.35.2", "accesskit_winit 0.34.2"],
+  "clipboard-win": ["clipboard-win 5.4.3"],
+  "lyon": ["lyon_algorithms 1.0.22", "lyon_extra 1.1.0", "lyon_geom 1.0.20", "lyon_path 1.0.19"],
+  "rspolib": ["rspolib 0.1.2"],
+  "taffy": ["taffy 0.15.1"]
+}

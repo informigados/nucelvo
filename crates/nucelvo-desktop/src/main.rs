@@ -1,7 +1,10 @@
 #![cfg_attr(all(windows, not(debug_assertions)), windows_subsystem = "windows")]
 
 mod graph;
+mod live;
 mod preferences;
+#[cfg(windows)]
+mod window_windows;
 mod workers;
 
 use std::{
@@ -17,10 +20,10 @@ use std::{
 use chrono::{Local, Utc};
 use nucelvo_core::{Category, Monitor, Snapshot, State};
 use nucelvo_report::{
-    Format, Report, Scope, field_display, sample_display, sensor_name, sensor_value, source_label,
+    Format, Report, Scope, field_display, sensor_name, sensor_value, source_label,
 };
 use preferences::Language;
-use slint::{ComponentHandle, ModelRc, SharedString, Timer, TimerMode, VecModel};
+use slint::{ComponentHandle, Model, ModelRc, SharedString, Timer, TimerMode, VecModel};
 
 slint::include_modules!();
 
@@ -38,6 +41,7 @@ struct App {
     metric_query: String,
     selected: String,
     metric_keys: Vec<String>,
+    live_metrics: Rc<VecModel<LiveMetric>>,
     clipboard: Option<arboard::Clipboard>,
     report: Option<(Arc<Report>, Format)>,
     report_folder: Arc<Mutex<Option<PathBuf>>>,
@@ -57,7 +61,7 @@ fn inventory(app: &App, window: &MainWindow) {
     let pt = window.get_portuguese();
     let selected = category(window.get_page());
     let query = app.inventory_query.trim().to_lowercase();
-    let rows = app
+    let mut rows: Vec<Row> = app
         .snapshot
         .iter()
         .flat_map(|snapshot| snapshot.fields.iter())
@@ -75,6 +79,7 @@ fn inventory(app: &App, window: &MainWindow) {
             value: field_display(field, pt).into(),
             detail: source_label(field.source, pt).into(),
             group: field.group(pt).into(),
+            group_start: false,
             copyable: field.state == State::Ok,
         })
         .filter(|row| {
@@ -88,6 +93,13 @@ fn inventory(app: &App, window: &MainWindow) {
             .any(|value| value.to_lowercase().contains(&query))
         })
         .collect();
+    let mut previous = SharedString::default();
+    for row in &mut rows {
+        if row.group != previous {
+            row.group_start = true;
+            previous = row.group.clone();
+        }
+    }
     window.set_rows(model(rows));
     if let Some(snapshot) = &app.snapshot {
         let format = if pt {
@@ -108,16 +120,18 @@ fn inventory(app: &App, window: &MainWindow) {
 
 fn monitor(app: &mut App, window: &MainWindow, rebuild_choices: bool) {
     let pt = window.get_portuguese();
-    let cpu = app
-        .monitor
-        .series
-        .get("cpu:load")
-        .and_then(|series| series.points.back());
-    window.set_cpu_value(
-        cpu.map(|sample| sample_display(sample, pt))
-            .unwrap_or_else(|| "—".into())
-            .into(),
-    );
+    if matches!(window.get_page(), 0 | 1 | 2 | 4) {
+        let metrics = live::metrics(&app.monitor, window.get_page(), window.get_paused(), pt);
+        if metrics.len() == app.live_metrics.row_count() {
+            for (index, reading) in metrics.into_iter().enumerate() {
+                if app.live_metrics.row_data(index).as_ref() != Some(&reading) {
+                    app.live_metrics.set_row_data(index, reading);
+                }
+            }
+        } else {
+            app.live_metrics.set_vec(metrics);
+        }
+    }
     if window.get_page() != SENSOR_PAGE {
         return;
     }
@@ -128,6 +142,9 @@ fn monitor(app: &mut App, window: &MainWindow, rebuild_choices: bool) {
         .iter()
         .filter_map(|(id, series)| {
             let sample = series.points.back()?;
+            if !live::group_matches(window.get_sensor_group(), sample) {
+                return None;
+            }
             let name = sensor_name(sample, pt);
             let shown = if sample.unit.is_empty() {
                 name.into()
@@ -145,7 +162,9 @@ fn monitor(app: &mut App, window: &MainWindow, rebuild_choices: bool) {
         let priority = |id: &str| match id {
             "cpu:load" => 0,
             "memory:load" => 1,
-            _ => 2,
+            id if id.starts_with("gpu:") => 2,
+            id if id.starts_with("cpu:logical:") => 4,
+            _ => 3,
         };
         (priority(&a.0), &a.1, &a.0).cmp(&(priority(&b.0), &b.1, &b.0))
     });
@@ -163,9 +182,6 @@ fn monitor(app: &mut App, window: &MainWindow, rebuild_choices: bool) {
         } else {
             index as i32
         });
-        if let Some(key) = app.metric_keys.get(index) {
-            app.selected.clone_from(key);
-        }
     }
 
     let series = app
@@ -187,14 +203,8 @@ fn monitor(app: &mut App, window: &MainWindow, rebuild_choices: bool) {
                 SharedString::from("—")
             }
         };
-        let current = if !window.get_paused()
-            && now.saturating_duration_since(sample.seen) > Duration::from_secs(12)
-        {
-            State::Stale.label(pt).into()
-        } else {
-            sample_display(sample, pt)
-        };
-        window.set_current_value(current.into());
+        window.set_current_value(live::current(sample, window.get_paused(), pt).into());
+        window.set_metric_tone(live::tone(sample));
         window.set_low_value(stat(series.min));
         window.set_high_value(stat(series.max));
         window.set_average_value(stat(series.mean));
@@ -222,6 +232,7 @@ fn monitor(app: &mut App, window: &MainWindow, rebuild_choices: bool) {
             set(window, "—".into());
         }
         window.set_metric_detail("".into());
+        window.set_metric_tone(0);
         window.set_axis_low("".into());
         window.set_axis_high("".into());
         window.set_has_graph(false);
@@ -322,7 +333,7 @@ fn bind(
         if page < SENSOR_PAGE {
             inventory(&app, &window);
         }
-        if page == SENSOR_PAGE {
+        if matches!(page, 0 | 1 | 2 | 4 | SENSOR_PAGE) {
             monitor(&mut app, &window, true);
         }
         if page == EXPORT_PAGE {
@@ -403,6 +414,28 @@ fn bind(
         let mut app = data.borrow_mut();
         app.metric_query = query.into();
         monitor(&mut app, &window, true);
+    });
+    let weak = window.as_weak();
+    let data = Rc::clone(app);
+    window.on_sensor_group_changed(move |group| {
+        if let Some(window) = weak.upgrade() {
+            window.set_sensor_group(group);
+            monitor(&mut data.borrow_mut(), &window, true);
+        }
+    });
+    let weak = window.as_weak();
+    let data = Rc::clone(app);
+    window.on_open_sensor(move |key| {
+        if let Some(window) = weak.upgrade() {
+            {
+                let mut app = data.borrow_mut();
+                app.selected = key.into();
+                app.metric_query.clear();
+            }
+            window.set_sensor_group(0);
+            window.set_metric_search_text("".into());
+            window.invoke_navigate(SENSOR_PAGE);
+        }
     });
     let weak = window.as_weak();
     let data = Rc::clone(app);
@@ -636,7 +669,7 @@ fn update(window: &MainWindow, app: &mut App, updates: workers::Updates) {
         }
         changed = true;
     }
-    if changed {
+    if changed && !window.window().is_minimized() {
         monitor(app, window, false);
     }
 }
@@ -645,9 +678,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let started = Instant::now();
     let mut smoke = false;
     let mut require_logical = false;
+    let mut require_nvidia = false;
     for argument in std::env::args().skip(1) {
         smoke |= argument == "--smoke-test";
         require_logical |= argument == "--require-logical-cpu";
+        require_nvidia |= argument == "--require-nvidia";
     }
     let window = MainWindow::new()?;
     let closing_window = window.as_weak();
@@ -682,19 +717,31 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .name("hardware-inventory".into())
         .spawn(move || workers::hardware(options.0, options.1, requests))?;
     let app = Rc::new(RefCell::new(App::default()));
+    window.set_live_metrics(ModelRc::from(Rc::clone(&app.borrow().live_metrics)));
     bind(&window, &app, &control, refresh);
+    monitor(&mut app.borrow_mut(), &window, true);
     let timer = Timer::default();
     let weak = window.as_weak();
     let passed = Rc::new(Cell::new(false));
     let result = Rc::clone(&passed);
+    let mut was_minimized = false;
     timer.start(TimerMode::Repeated, Duration::from_millis(100), move || {
         let Some(window) = weak.upgrade() else {
             return;
         };
         let native = window.window();
-        window.set_narrow((native.size().width as f32 / native.scale_factor()) < 810.0);
+        let minimized = native.is_minimized();
+        let restored = std::mem::replace(&mut was_minimized, minimized) && !minimized;
+        if !minimized {
+            window.set_narrow((native.size().width as f32 / native.scale_factor()) < 810.0);
+        }
         let received = std::mem::take(&mut *updates.lock().unwrap());
         update(&window, &mut app.borrow_mut(), received);
+        if restored {
+            monitor(&mut app.borrow_mut(), &window, false);
+            #[cfg(windows)]
+            window_windows::repaint_restored_window(native);
+        }
         let logical = if smoke {
             app.borrow().monitor.series.iter().filter(|(id, series)| {
                 id.starts_with("cpu:logical:")
@@ -703,9 +750,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         } else {
             0
         };
+        let nvidia_ready = !require_nvidia || {
+            let app = app.borrow();
+            let has_reading = |kind| {
+                app.monitor.series.iter().any(|(id, series)| {
+                    id.starts_with("gpu:nvidia:")
+                        && id.rsplit(':').next() == Some(kind)
+                        && series.points.back().is_some_and(|point| point.state == State::Ok && point.value.is_some())
+                })
+            };
+            ["temperature", "load", "vram", "fan", "power"].into_iter().all(has_reading)
+        };
         if smoke
             && window.get_ready()
             && (!require_logical || logical > 0)
+            && nvidia_ready
             && app
                 .borrow()
                 .monitor
@@ -718,6 +777,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 && window.get_overview_title() == "Visão geral";
             let english_restored = preference(&window, Language::English)
                 && window.get_overview_title() == "Overview";
+            let sensor_link = if require_nvidia {
+                let key = app.borrow().live_metrics.row_data(3).unwrap_or_default().key;
+                window.invoke_open_sensor(key.clone());
+                key.starts_with("gpu:nvidia:")
+                    && window.get_page() == SENSOR_PAGE
+                    && window.get_metric_tone() == 3
+            } else {
+                true
+            };
             window.invoke_navigate(SENSOR_PAGE);
             let chart_visible = window.get_has_graph();
             let state = app.borrow();
@@ -761,7 +829,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         sensors.save(&dir.path().join(format!("sensors.{}", format.extension())), *format).is_ok()
                     })
             });
-            result.set(english && pt && english_restored && real && chart_visible && saved && !report.is_empty());
+            result.set(english && pt && english_restored && sensor_link && real && chart_visible && saved && !report.is_empty());
             println!(
                 "Inventory, chart, localization and exports: {} ms. Logical CPUs with a valid sample: {logical}.",
                 started.elapsed().as_millis(),
