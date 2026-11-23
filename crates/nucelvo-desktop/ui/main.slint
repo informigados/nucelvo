@@ -7,6 +7,7 @@ export struct Row {
     group: string,
     group-start: bool,
     copyable: bool,
+    warning: bool,
 }
 
 export struct LiveMetric {
@@ -376,6 +377,12 @@ export component MainWindow inherits Window {
                                 vertical-alignment: center;
                             }
                         }
+                        if root.page == 5 : Text {
+                            text: @tr("Drive health reflects the last inventory capture. SSD wear is a manufacturer estimate.");
+                            color: root.muted;
+                            font-size: 12px;
+                            wrap: word-wrap;
+                        }
                     }
 
                     if root.page < 7 : VerticalLayout {
@@ -419,7 +426,12 @@ export component MainWindow inherits Window {
                                         horizontal-stretch: 1;
                                         alignment: center;
                                         spacing: 3px;
-                                        Text { text: item.value; color: root.ink; wrap: word-wrap; }
+                                        Text {
+                                            text: item.value;
+                                            color: item.warning ? root.metric-colors[3] : root.ink;
+                                            font-weight: item.warning ? 650 : 400;
+                                            wrap: word-wrap;
+                                        }
                                         Text { text: item.detail; color: root.muted; font-size: 11px; overflow: elide; }
                                     }
                                     VerticalLayout {

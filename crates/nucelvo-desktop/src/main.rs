@@ -81,6 +81,10 @@ fn inventory(app: &App, window: &MainWindow) {
             group: field.group(pt).into(),
             group_start: false,
             copyable: field.state == State::Ok,
+            warning: field.key == "drive_health"
+                && matches!(field.value.as_ref(), Some(nucelvo_core::Value::Text(value)) if value == "alert")
+                || field.key == "ssd_endurance_used"
+                    && matches!(field.value.as_ref(), Some(nucelvo_core::Value::Number(value)) if *value >= 100),
         })
         .filter(|row| {
             [
@@ -679,10 +683,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut smoke = false;
     let mut require_logical = false;
     let mut require_nvidia = false;
+    let mut require_storage = false;
     for argument in std::env::args().skip(1) {
         smoke |= argument == "--smoke-test";
         require_logical |= argument == "--require-logical-cpu";
         require_nvidia |= argument == "--require-nvidia";
+        require_storage |= argument == "--require-storage";
     }
     let window = MainWindow::new()?;
     let closing_window = window.as_weak();
@@ -804,6 +810,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         .any(|field| field.category == *category)
                 })
             });
+            let storage_readings = state.snapshot.as_ref().is_some_and(|snapshot| {
+                let valid = |key, source| snapshot.fields.iter().any(|field| {
+                    field.key == key && field.source == source && field.state == State::Ok
+                });
+                valid("power_on_hours", "Windows · ATA SMART")
+                    && valid("power_on_hours", "Windows · NVMe health log")
+                    && valid("ssd_endurance_used", "Windows · NVMe health log")
+            });
             let report = Report::capture(
                 state.snapshot.as_ref(),
                 &state.monitor,
@@ -831,7 +845,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         sensors.save(&dir.path().join(format!("sensors.{}", format.extension())), *format).is_ok()
                     })
             });
-            result.set(english && pt && english_restored && sensor_link && real && chart_visible && saved && !report.is_empty());
+            result.set(english && pt && english_restored && sensor_link && real && chart_visible && saved && !report.is_empty()
+                && (!require_storage || storage_readings));
             println!(
                 "Inventory, chart, localization and exports: {} ms. Logical CPUs with a valid sample: {logical}.",
                 started.elapsed().as_millis(),

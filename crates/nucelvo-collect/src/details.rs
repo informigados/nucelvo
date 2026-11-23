@@ -10,6 +10,8 @@ mod native;
 mod native;
 #[path = "power.rs"]
 mod power;
+#[path = "storage_health.rs"]
+mod storage_health;
 
 pub fn base_snapshot() -> Snapshot {
     let base = super::inventory();

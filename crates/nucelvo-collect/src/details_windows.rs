@@ -104,7 +104,12 @@ fn query(
     } else {
         ""
     };
-    let query = format!("SELECT {keys} FROM {class}{filter}");
+    let disk_index = if class == "Win32_DiskDrive" {
+        "Index, "
+    } else {
+        ""
+    };
+    let query = format!("SELECT {disk_index}{keys} FROM {class}{filter}");
     let (rows, missing) = match conn
         .as_ref()
         .map_err(error_state)
@@ -144,11 +149,29 @@ fn query(
         );
     } else {
         for (index, row) in rows.iter().enumerate() {
+            let device = first_device + index;
             fields.extend(
                 properties
                     .iter()
-                    .map(|property| make_field(property, first_device + index, Some(row))),
+                    .map(|property| make_field(property, device, Some(row))),
             );
+            if class == "Win32_DiskDrive"
+                && let Some(number) = row
+                    .get("Index")
+                    .and_then(numeric)
+                    .and_then(|value| u32::try_from(value).ok())
+            {
+                let text = |key| match row.get(key) {
+                    Some(Variant::String(text)) => text.as_str(),
+                    _ => "",
+                };
+                fields.extend(super::storage_health::windows::collect(
+                    device,
+                    number,
+                    text("Model"),
+                    text("InterfaceType"),
+                ));
+            }
         }
     }
 }

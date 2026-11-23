@@ -266,6 +266,10 @@ msgid "Temperature"
 msgstr "Temperatura"
 
 msgctxt "MainWindow"
+msgid "Drive health reflects the last inventory capture. SSD wear is a manufacturer estimate."
+msgstr "A saúde da unidade reflete a última captura do inventário. O desgaste do SSD é uma estimativa do fabricante."
+
+msgctxt "MainWindow"
 msgid "You don't have permission to save here. Choose another folder."
 msgstr "Você não tem permissão para salvar neste local. Escolha outra pasta."
 

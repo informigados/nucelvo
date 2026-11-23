@@ -1,8 +1,12 @@
 # Changelog
 
-## Unreleased
+## 0.3.0 · Storage health preview
 
+- Adds drive failure alerts, power-on hours, power cycles, and drive temperature when available.
+- Adds estimated SSD endurance used, spare capacity, host reads and writes, unsafe shutdowns, and media errors for compatible NVMe drives.
+- Reads ATA SMART on Windows and can use an installed smartctl on Linux. Verified ATA attribute decoding on two physical SATA hard drives.
 - Adds power source, system battery detection, charge, and charging status to the System tab and inventory reports.
+- Includes a Windows x64 installer, a portable ZIP, and SHA-256 checksums.
 
 ## 0.2.0 · Windows installer preview
 

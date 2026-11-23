@@ -366,6 +366,14 @@ impl Report {
 
 pub fn field_display(field: &Field, pt: bool) -> String {
     match &field.value {
+        Some(Value::Text(value)) if field.key == "drive_health" => {
+            let labels = match value.as_str() {
+                "no_alert" => ("No alert reported", "Nenhum alerta informado"),
+                "alert" => ("Device alert reported", "Alerta informado pela unidade"),
+                _ => return one_line(value),
+            };
+            (if pt { labels.1 } else { labels.0 }).into()
+        }
         Some(Value::Text(value))
             if matches!(
                 field.key,
@@ -440,6 +448,9 @@ pub fn source_label(source: &str, pt: bool) -> &'static str {
         ),
         "Win32 · GetSystemPowerStatus" => ("Windows power status", "Estado de energia do Windows"),
         "sysfs · power_supply" => ("Linux power supplies", "Fontes de energia do Linux"),
+        "Windows · NVMe health log" => ("NVMe health log", "Registro de saúde NVMe"),
+        "Windows · ATA SMART" => ("ATA SMART", "SMART ATA"),
+        "smartmontools · smartctl" => ("smartmontools", "smartmontools"),
         "WMI · MSAcpi_ThermalZoneTemperature" => (
             "Windows ACPI thermal sensors",
             "Sensores térmicos ACPI do Windows",

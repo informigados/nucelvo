@@ -382,6 +382,7 @@ fn pci_name(database: &str, vendor: &str, model: &str) -> Option<String> {
 
 fn storage(fields: &mut Vec<Field>) {
     const SOURCE: &str = "sysfs · block";
+    let health = super::storage_health::linux::Probe::new();
     let mut count = 0;
     for path in entries("/sys/block").unwrap_or_default() {
         let Some(name) = path.file_name().and_then(|name| name.to_str()) else {
@@ -427,6 +428,9 @@ fn storage(fields: &mut Vec<Field>) {
             interface,
             SOURCE,
         ));
+        if device.exists() {
+            fields.extend(health.collect(count, name));
+        }
         count += 1;
     }
     if count == 0 {
