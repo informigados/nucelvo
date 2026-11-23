@@ -23,18 +23,6 @@ Get-FileHash .\nucelvo-0.7.1-windows-x64-setup.exe -Algorithm SHA256
 
 For the **0.7.1 Windows x64 installer**, the published SHA-256 is `609abee271e4df8f9aab031c054b3a9f927f5e2079497aa31e346a3188a60f1b`.
 
-### 🛡️ Third-party analysis
-
-| Service | Report |
-| --- | --- |
-| VirusTotal | The recorded scan showed 2 detections, 65 engines with no detection, and 3 engines that did not support the file type. The detections remain unconfirmed. [View VirusTotal report](https://www.virustotal.com/gui/file/609abee271e4df8f9aab031c054b3a9f927f5e2079497aa31e346a3188a60f1b) |
-| Hybrid Analysis | The sample summary showed a threat score of 0/100, 0 of 27 antivirus engines flagging the file, and 11 suspicious behavioral indicators. [View Hybrid Analysis report](https://hybrid-analysis.com/sample/609abee271e4df8f9aab031c054b3a9f927f5e2079497aa31e346a3188a60f1b) |
-| MetaDefender Cloud | MetaScan flagged the installer in 1 of 21 engines. Webroot SMD reported `Malware_51.4`, and Adaptive Sandbox rated the installer **Suspicious**. The archive view also flagged the bundled NSIS language-selection plug-in, `LangDLL.dll`. [View MetaDefender Cloud report](https://metadefender.com/results/file/bzI2MTEyMzVpaVpJdXQ2dHBiUGNQT2RiZ0xI_mdaas/overview) |
-
-These services use different engines, rules, and test environments, and results can change over time. A checksum confirms file identity. Scan results describe what a service observed for that file.
-
-Nucelvo Setup installs files for the current user, creates an uninstaller and shortcuts, and adds an entry to Windows Installed Apps. These operations account for some of the observed file and registry activity. Other indicators require individual review. [Windows installer source](packaging/windows/Nucelvo.nsi)
-
 ### Microsoft Defender SmartScreen
 
 The Windows installer is unsigned. Microsoft Edge may show a reputation warning if the file is uncommon or unrecognized. If you choose to keep the official installer after checking its source and SHA-256, open the download item's **…** menu, select **Keep**, and select **Keep anyway** under **Show more** if that option is available. Leave SmartScreen enabled and follow any malware warning or organization policy. [Microsoft Edge SmartScreen documentation](https://learn.microsoft.com/en-us/deployedge/microsoft-edge-security-smartscreen)
