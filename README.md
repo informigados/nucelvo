@@ -27,7 +27,7 @@ Get-FileHash .\nucelvo-0.7.1-windows-x64-setup.exe -Algorithm SHA256
 
 Matching the release checksum confirms that your download matches the published file.
 
-See the [VirusTotal analysis for the 0.7.1 installer](https://www.virustotal.com/gui/file/609abee271e4df8f9aab031c054b3a9f927f5e2079497aa31e346a3188a60f1b). The link is tied to the exact SHA-256 of the published installer.
+The VirusTotal report for the 0.7.1 installer recorded two detections, 65 engines with no detection, and three engines that did not support the file type. The detections remain unconfirmed. Review the report for the exact SHA-256 of the published installer. [VirusTotal analysis](https://www.virustotal.com/gui/file/609abee271e4df8f9aab031c054b3a9f927f5e2079497aa31e346a3188a60f1b)
 
 ## 🖥️ What you can do
 
