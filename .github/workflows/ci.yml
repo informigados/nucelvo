@@ -41,7 +41,7 @@ jobs:
           env -u DISPLAY -u WAYLAND_SOCKET dbus-run-session -- bash -euo pipefail <<'WAYLAND_TEST'
           export XDG_RUNTIME_DIR="$(mktemp -d)"
           export WAYLAND_DISPLAY=nucelvo-ci
-          weston --backend=headless --renderer=pixman --width=1280 --height=800 --socket="$WAYLAND_DISPLAY" --idle-time=0 --no-config --log="$XDG_RUNTIME_DIR/weston.log" &
+          weston --backend=headless --shell=kiosk-shell.so --renderer=pixman --width=1280 --height=800 --socket="$WAYLAND_DISPLAY" --idle-time=0 --no-config --log="$XDG_RUNTIME_DIR/weston.log" &
           compositor=$!
           trap 'cat "$XDG_RUNTIME_DIR/weston.log" || true; kill "$compositor" 2>/dev/null || true' EXIT
           for attempt in {1..50}; do
