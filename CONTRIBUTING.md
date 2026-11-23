@@ -1,14 +1,16 @@
 # Contributing to Nucelvo
 
-## Getting started
+## 🚀 Getting started
 
 Follow the [build instructions](README.md#-run-from-source) and review the [compatibility notes](docs/compatibility.md) before working on hardware support. Please use English in issues, pull requests, and code comments. For language changes, see the [translation guide](translations/README.md).
 
-## Reporting a problem
+## 🐛 Reporting a problem
 
 Include the operating system and version, hardware model if relevant, steps to reproduce the issue, and what you expected to see. If you attach a report, use **Share-safe** and review its contents before posting.
 
-## Checking a change
+For suspected vulnerabilities, follow the [security policy](SECURITY.md).
+
+## 🧪 Checking a change
 
 Run these commands from the project root:
 
@@ -23,6 +25,6 @@ For collector changes, run the smoke test with `--require-logical-cpu` on a mach
 
 For hardware changes, include the source, device and OS used for validation. Document conditions such as unavailable data, permission limits, and driver requirements. Keep JSON and CSV field names, units, and status codes stable when changing their presentation.
 
-## Opening a pull request
+## 🔀 Opening a pull request
 
 Describe the behavior change, the platforms you checked, and any validation that remains pending. Add a screenshot for visual changes when it helps review. Remove identifying information from screenshots and fixtures.

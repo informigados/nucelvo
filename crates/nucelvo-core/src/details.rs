@@ -126,6 +126,18 @@ impl Field {
     pub fn group(&self, pt: bool) -> String {
         let label = self.category.label(pt);
         let (device, number) = match self.category {
+            Category::System if self.device == 1 => {
+                return if pt {
+                    "Energia e bateria"
+                } else {
+                    "Power and battery"
+                }
+                .into();
+            }
+            Category::System if self.device > 1 => {
+                let battery = if pt { "Bateria" } else { "Battery" };
+                return format!("{battery} {}", self.device - 1);
+            }
             Category::Storage if self.device >= 10_000 => ("Volume", self.device - 9_999),
             Category::Storage => (if pt { "Unidade" } else { "Drive" }, self.device + 1),
             Category::Graphics => (if pt { "Adaptador" } else { "Adapter" }, self.device + 1),

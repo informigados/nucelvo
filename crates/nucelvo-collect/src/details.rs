@@ -8,6 +8,8 @@ mod native;
 #[cfg(windows)]
 #[path = "details_windows.rs"]
 mod native;
+#[path = "power.rs"]
+mod power;
 
 pub fn base_snapshot() -> Snapshot {
     let base = super::inventory();
@@ -69,7 +71,9 @@ pub fn base_snapshot() -> Snapshot {
 }
 
 pub fn hardware_details() -> Vec<Field> {
-    native::hardware_details()
+    let mut fields = native::hardware_details();
+    fields.extend(power::fields());
+    fields
 }
 
 #[cfg(windows)]

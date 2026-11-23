@@ -366,6 +366,25 @@ impl Report {
 
 pub fn field_display(field: &Field, pt: bool) -> String {
     match &field.value {
+        Some(Value::Text(value))
+            if matches!(
+                field.key,
+                "power_source" | "battery_detected" | "battery_status"
+            ) =>
+        {
+            let labels = match (field.key, value.as_str()) {
+                ("power_source", "external") => ("External power", "Energia externa"),
+                ("power_source", "battery") => ("Battery power", "Energia da bateria"),
+                ("battery_detected", "detected") => ("Detected", "Detectada"),
+                ("battery_detected", "not_detected") => ("Not detected", "Não detectada"),
+                ("battery_status", "charging") => ("Charging", "Carregando"),
+                ("battery_status", "discharging") => ("Discharging", "Descarregando"),
+                ("battery_status", "not_charging") => ("Not charging", "Sem carregar"),
+                ("battery_status", "full") => ("Fully charged", "Carga completa"),
+                _ => return one_line(value),
+            };
+            (if pt { labels.1 } else { labels.0 }).into()
+        }
         Some(Value::Text(value)) if pt && field.key == "cache" => one_line(value)
             .replace(" · Unified · ", " · Unificado · ")
             .replace(" · Data · ", " · Dados · ")
@@ -403,6 +422,7 @@ pub fn field_display(field: &Field, pt: bool) -> String {
             value / 60 % 60,
             value % 60
         ),
+        Some(Value::Number(value)) if field.unit == "%" => format!("{value}%"),
         Some(Value::Number(value)) if field.unit.is_empty() => value.to_string(),
         Some(Value::Number(value)) => format!("{value} {}", field.unit),
         None => field.state.label(pt).into(),
@@ -418,6 +438,8 @@ pub fn source_label(source: &str, pt: bool) -> &'static str {
             "Windows memory statistics",
             "Estatísticas de memória do Windows",
         ),
+        "Win32 · GetSystemPowerStatus" => ("Windows power status", "Estado de energia do Windows"),
+        "sysfs · power_supply" => ("Linux power supplies", "Fontes de energia do Linux"),
         "WMI · MSAcpi_ThermalZoneTemperature" => (
             "Windows ACPI thermal sensors",
             "Sensores térmicos ACPI do Windows",

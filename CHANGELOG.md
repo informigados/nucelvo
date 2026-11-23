@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Adds power source, system battery detection, charge, and charging status to the System tab and inventory reports.
+
 ## 0.2.0 · Windows installer preview
 
 - Restores the full window on Windows after minimizing, including when the window was maximized.

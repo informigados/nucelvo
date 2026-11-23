@@ -795,6 +795,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         .fields
                         .iter()
                         .any(|field| field.key == *key && field.state == State::Ok)
+                }) && ["power_source", "battery_detected"].iter().all(|key| {
+                    snapshot.fields.iter().any(|field| field.key == *key && field.category == Category::System)
                 }) && Category::ALL.iter().all(|category| {
                     snapshot
                         .fields

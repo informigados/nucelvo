@@ -2751,6 +2751,7 @@ dependencies = [
  "libc",
  "libloading",
  "nucelvo-core",
+ "tempfile",
  "windows",
  "windows-sys 0.61.2",
  "winreg",
