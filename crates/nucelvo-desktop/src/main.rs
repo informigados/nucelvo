@@ -1,5 +1,6 @@
 #![cfg_attr(all(windows, not(debug_assertions)), windows_subsystem = "windows")]
 
+mod about;
 mod graph;
 mod inventory_view;
 mod live;
@@ -858,13 +859,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut require_logical = false;
     let mut require_nvidia = false;
     let mut require_storage = false;
+    let mut require_network = false;
     for argument in std::env::args().skip(1) {
         smoke |= argument == "--smoke-test";
         require_logical |= argument == "--require-logical-cpu";
         require_nvidia |= argument == "--require-nvidia";
         require_storage |= argument == "--require-storage";
+        require_network |= argument == "--require-network";
     }
     let window = MainWindow::new()?;
+    about::bind(&window);
     let closing_window = window.as_weak();
     window.window().on_close_requested(move || {
         if closing_window
@@ -958,9 +962,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         {
             let english = window.get_overview_title() == "Overview";
             let pt = preference(&window, Language::Portuguese)
-                && window.get_overview_title() == "Visão geral";
+                && window.get_overview_title() == "Visão geral"
+                && window.get_about_title() == "Sobre";
             let english_restored = preference(&window, Language::English)
-                && window.get_overview_title() == "Overview";
+                && window.get_overview_title() == "Overview"
+                && window.get_about_title() == "About";
             window.invoke_apply_theme(Theme::Light.choice());
             let light = !window.get_dark_mode();
             window.invoke_apply_theme(Theme::Dark.choice());
@@ -990,6 +996,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             };
             window.invoke_navigate(6);
             let uptime_note = window.get_rows().iter().any(|row| row.label == "Uptime at capture" && !row.note.is_empty());
+            let network_inventory = !require_network || {
+                let rows = window.get_rows();
+                ["Adapter", "Link status", "Data received by the adapter", "Data sent by the adapter"]
+                    .iter().all(|label| rows.iter().any(|row| row.label == *label
+                        && row.group.starts_with("Network adapter ") && row.copyable))
+            };
             window.invoke_navigate(SENSOR_PAGE);
             let chart_visible = window.get_has_graph();
             let state = app.borrow();
@@ -1044,7 +1056,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     })
             });
             result.set(english && pt && english_restored && theme_switch && inline_cpu && sensor_link && storage_layout && uptime_note
-                && real && chart_visible && saved && !report.is_empty() && (!require_storage || storage_readings));
+                && network_inventory && real && chart_visible && saved && !report.is_empty()
+                && (!require_storage || storage_readings));
             println!(
                 "Inventory, chart, localization and exports: {} ms. Logical CPUs with a valid sample: {logical}.",
                 started.elapsed().as_millis(),

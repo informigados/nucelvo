@@ -49,6 +49,8 @@ LangString InstallFailed ${LANG_ENGLISH} "Setup could not finish. Close Nucelvo 
 LangString InstallFailed ${LANG_PORTUGUESEBR} "A instalação não pôde ser concluída. Feche o Nucelvo e verifique se você pode gravar na pasta de instalação."
 LangString UninstallFailed ${LANG_ENGLISH} "Nucelvo could not be removed. Close the app and try again."
 LangString UninstallFailed ${LANG_PORTUGUESEBR} "Não foi possível remover o Nucelvo. Feche o aplicativo e tente novamente."
+LangString DesktopShortcutUnavailable ${LANG_ENGLISH} "Windows did not allow setup to save the desktop shortcut."
+LangString DesktopShortcutUnavailable ${LANG_PORTUGUESEBR} "O Windows não permitiu salvar o atalho na área de trabalho."
 
 Function .onInit
     SetRegView 64
@@ -103,7 +105,7 @@ endSearch:
     IfErrors failed
     WriteUninstaller "$INSTDIR\Uninstall.exe"
     IfErrors failed
-    CreateShortcut "$SMPROGRAMS\Nucelvo.lnk" "$INSTDIR\nucelvo.exe"
+    CreateShortcut "$SMPROGRAMS\Nucelvo.lnk" "$INSTDIR\nucelvo.exe" "" "$INSTDIR\nucelvo.exe" 0
     IfErrors failed
 
     WriteRegStr HKCU "${PRODUCT_KEY}" "DisplayName" "Nucelvo"
@@ -117,6 +119,19 @@ endSearch:
     WriteRegDWORD HKCU "${PRODUCT_KEY}" "NoModify" 1
     WriteRegDWORD HKCU "${PRODUCT_KEY}" "NoRepair" 1
     IfErrors failed
+
+    ReadRegDWORD $0 HKCU "${PRODUCT_KEY}" "DesktopShortcut"
+    ${If} $0 != 1
+        IfFileExists "$DESKTOP\Nucelvo.lnk" done
+    ${EndIf}
+    ClearErrors
+    CreateShortcut "$DESKTOP\Nucelvo.lnk" "$INSTDIR\nucelvo.exe" "" "$INSTDIR\nucelvo.exe" 0
+    IfErrors desktopFailed
+    WriteRegDWORD HKCU "${PRODUCT_KEY}" "DesktopShortcut" 1
+    IfErrors desktopFailed
+    Goto done
+desktopFailed:
+    DetailPrint "$(DesktopShortcutUnavailable)"
     Goto done
 failed:
     MessageBox MB_ICONSTOP "$(InstallFailed)" /SD IDOK
@@ -144,6 +159,10 @@ removeNotices:
 
     ReadRegStr $0 HKCU "${PRODUCT_KEY}" "InstallLocation"
     ${If} $0 == $INSTDIR
+        ReadRegDWORD $1 HKCU "${PRODUCT_KEY}" "DesktopShortcut"
+        ${If} $1 == 1
+            Delete "$DESKTOP\Nucelvo.lnk"
+        ${EndIf}
         Delete "$SMPROGRAMS\Nucelvo.lnk"
         DeleteRegKey HKCU "${PRODUCT_KEY}"
     ${EndIf}

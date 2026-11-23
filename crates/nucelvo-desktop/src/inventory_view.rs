@@ -95,6 +95,14 @@ pub fn section(field: &Field) -> u8 {
 
 fn note(key: &str, pt: bool) -> &'static str {
     let text = match key {
+        "network_link_speed" | "network_rx_speed" | "network_tx_speed" => (
+            "The speed negotiated by this adapter. Internet speed depends on the rest of the connection.",
+            "Velocidade negociada pelo adaptador. A velocidade da internet depende do restante da conexão.",
+        ),
+        "network_received" | "network_sent" => (
+            "Cumulative traffic from the operating system's adapter counter, including local network traffic.",
+            "Tráfego acumulado pelo contador do adaptador no sistema operacional, incluindo o tráfego da rede local.",
+        ),
         "uptime" => (
             "Time since the system started, measured when this inventory was captured. Shown as hours, minutes, and seconds.",
             "Tempo desde a inicialização do sistema até a captura do inventário. Exibido em horas, minutos e segundos.",

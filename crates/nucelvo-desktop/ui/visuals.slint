@@ -74,8 +74,60 @@ export component Glyph inherits Path {
         : symbol == 10 ? "M10 14 V5 A2 2 0 0 1 14 5 V14 A4 4 0 1 1 10 14 Z M12 9 V17 M17 6 H20 M17 10 H19"
         : symbol == 11 ? "M12 10 C8 10 7 4 11 3 C14 3 14 7 13 10 M14 12 C15 8 21 9 21 13 C20 16 16 15 14 13 M11 14 C14 17 10 22 7 20 C5 18 8 15 10 13 M14 12 A2 2 0 1 1 10 12 A2 2 0 1 1 14 12"
         : symbol == 12 ? "M13 2 L5 13 H11 L10 22 L19 10 H13 Z"
+        : symbol == 13 ? "M21 12 A9 9 0 1 1 3 12 A9 9 0 1 1 21 12 M12 11 V16 M12 8 V8.1"
         : "M4 19 V13 H7 V19 M10 19 V9 H13 V19 M16 19 V5 H19 V19 M3 19 H21";
     accessible-role: none;
+}
+
+export component AuthorCard inherits Rectangle {
+    in property <string> name;
+    in property <string> handle;
+    in property <image> avatar;
+    in property <color> ink;
+    in property <color> muted;
+    in property <color> line;
+    callback clicked();
+    min-width: 0px;
+    height: 80px;
+    border-radius: 7px;
+    border-width: 1px;
+    border-color: root.line;
+    HorizontalLayout {
+        padding: 10px;
+        spacing: 10px;
+        VerticalLayout {
+            width: 48px;
+            alignment: center;
+            Rectangle {
+                height: 48px;
+                clip: true;
+                border-radius: 9px;
+                Image {
+                    width: parent.width;
+                    height: parent.height;
+                    source: root.avatar;
+                    image-fit: cover;
+                    accessible-role: none;
+                }
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            spacing: 3px;
+            horizontal-stretch: 1;
+            Text { text: root.name; color: root.ink; font-weight: 700; overflow: elide; }
+            Text { text: root.handle; color: root.muted; font-size: 12px; overflow: elide; }
+        }
+        VerticalLayout {
+            alignment: center;
+            width: 38px;
+            ActionButton {
+                icon: @image-url("icons/external.svg");
+                accessible-label: root.name + " · GitHub";
+                clicked => { root.clicked(); }
+            }
+        }
+    }
 }
 
 export component ChartPlot inherits Rectangle {

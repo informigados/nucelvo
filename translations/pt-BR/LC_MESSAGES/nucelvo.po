@@ -290,6 +290,62 @@ msgid "Copy model"
 msgstr "Copiar modelo"
 
 msgctxt "MainWindow"
+msgid "About"
+msgstr "Sobre"
+
+msgctxt "MainWindow"
+msgid "Version {}"
+msgstr "Versão {}"
+
+msgctxt "MainWindow"
+msgid "Hardware inventory, live sensor monitoring, and diagnostic reports for Windows and Linux."
+msgstr "Inventário de hardware, monitoramento de sensores em tempo real e relatórios de diagnóstico para Windows e Linux."
+
+msgctxt "MainWindow"
+msgid "Checking for updates…"
+msgstr "Buscando atualizações…"
+
+msgctxt "MainWindow"
+msgid "Check for updates"
+msgstr "Buscar atualizações"
+
+msgctxt "MainWindow"
+msgid "View release on GitHub"
+msgstr "Ver versão no GitHub"
+
+msgctxt "MainWindow"
+msgid "No newer version was found."
+msgstr "Nenhuma versão mais recente foi encontrada."
+
+msgctxt "MainWindow"
+msgid "Version {} is available."
+msgstr "A versão {} está disponível."
+
+msgctxt "MainWindow"
+msgid "Could not check for updates. Check your connection and try again."
+msgstr "Não foi possível buscar atualizações. Verifique a conexão e tente novamente."
+
+msgctxt "MainWindow"
+msgid "Authors"
+msgstr "Autores"
+
+msgctxt "MainWindow"
+msgid "All rights reserved."
+msgstr "Todos os direitos reservados."
+
+msgctxt "MainWindow"
+msgid "Designed by INformigados"
+msgstr "Projetado por INformigados"
+
+msgctxt "MainWindow"
+msgid "View repository"
+msgstr "Ver repositório"
+
+msgctxt "MainWindow"
+msgid "Could not open the link in your browser."
+msgstr "Não foi possível abrir o link no navegador."
+
+msgctxt "MainWindow"
 msgid "Drive health reflects the last inventory capture. SSD wear is a manufacturer estimate."
 msgstr "A saúde da unidade reflete a última captura do inventário. O desgaste do SSD é uma estimativa do fabricante."
 

@@ -2,12 +2,17 @@ use chrono::Utc;
 use nucelvo_core::{Category as C, Field, Reading, Sample, Snapshot, State};
 use std::time::Instant;
 
+#[cfg(windows)]
+#[path = "displays_windows.rs"]
+mod displays;
 #[cfg(target_os = "linux")]
 #[path = "details_linux.rs"]
 mod native;
 #[cfg(windows)]
 #[path = "details_windows.rs"]
 mod native;
+#[path = "network.rs"]
+mod network;
 #[path = "power.rs"]
 mod power;
 #[path = "storage_health.rs"]
@@ -75,6 +80,9 @@ pub fn base_snapshot() -> Snapshot {
 pub fn hardware_details() -> Vec<Field> {
     let mut fields = native::hardware_details();
     fields.extend(power::fields());
+    fields.extend(network::fields());
+    #[cfg(windows)]
+    fields.extend(displays::fields());
     fields
 }
 

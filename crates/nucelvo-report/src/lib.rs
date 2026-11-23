@@ -366,6 +366,28 @@ impl Report {
 
 pub fn field_display(field: &Field, pt: bool) -> String {
     match &field.value {
+        Some(Value::Text(value)) if matches!(field.key, "network_type" | "network_status") => {
+            let display = match value.as_str() {
+                "ethernet" => ("Ethernet", "Ethernet"),
+                "wifi" => ("Wi-Fi", "Wi-Fi"),
+                "up" => ("Connected", "Conectado"),
+                "down" => ("Disconnected", "Desconectado"),
+                "dormant" => ("Waiting", "Aguardando conexão"),
+                "testing" => ("Testing", "Em teste"),
+                _ => return one_line(value),
+            };
+            (if pt { display.1 } else { display.0 }).into()
+        }
+        Some(Value::Text(value)) if pt && field.key == "display_role" => match value.as_str() {
+            "primary" => "Principal".into(),
+            "secondary" => "Secundário".into(),
+            _ => one_line(value),
+        },
+        Some(Value::Text(value)) if field.key == "display_role" => match value.as_str() {
+            "primary" => "Primary".into(),
+            "secondary" => "Secondary".into(),
+            _ => one_line(value),
+        },
         Some(Value::Text(value)) if field.key == "drive_health" => {
             let labels = match value.as_str() {
                 "no_alert" => ("No alert reported", "Nenhum alerta informado"),
@@ -421,7 +443,7 @@ pub fn field_display(field: &Field, pt: bool) -> String {
             };
             format!("{} {unit}", decimal(*value as f64 / divisor as f64, pt))
         }
-        Some(Value::Number(value)) if field.unit == "Hz" => {
+        Some(Value::Number(value)) if field.unit == "Hz" && field.key != "display_refresh" => {
             format!("{} MHz", decimal(*value as f64 / 1_000_000.0, pt))
         }
         Some(Value::Number(value)) if field.unit == "s" => format!(
@@ -431,6 +453,18 @@ pub fn field_display(field: &Field, pt: bool) -> String {
             value % 60
         ),
         Some(Value::Number(value)) if field.unit == "%" => format!("{value}%"),
+        Some(Value::Number(value)) if field.unit == "bit/s" => {
+            for (factor, unit) in [
+                (1_000_000_000, "Gb/s"),
+                (1_000_000, "Mb/s"),
+                (1_000, "kb/s"),
+            ] {
+                if *value >= factor {
+                    return format!("{} {unit}", decimal(*value as f64 / factor as f64, pt));
+                }
+            }
+            format!("{value} bit/s")
+        }
         Some(Value::Number(value)) if field.unit.is_empty() => value.to_string(),
         Some(Value::Number(value)) => format!("{value} {}", field.unit),
         None => field.state.label(pt).into(),
@@ -447,6 +481,12 @@ pub fn source_label(source: &str, pt: bool) -> &'static str {
             "Estatísticas de memória do Windows",
         ),
         "Win32 · GetSystemPowerStatus" => ("Windows power status", "Estado de energia do Windows"),
+        "Win32 · Display settings" => (
+            "Windows display settings",
+            "Configurações de vídeo do Windows",
+        ),
+        "Win32 · IP Helper" => ("Windows network counters", "Contadores de rede do Windows"),
+        "sysfs · network" => ("Linux network interfaces", "Interfaces de rede do Linux"),
         "sysfs · power_supply" => ("Linux power supplies", "Fontes de energia do Linux"),
         "Windows · NVMe health log" => ("NVMe health log", "Registro de saúde NVMe"),
         "Windows · ATA SMART" => ("ATA SMART", "SMART ATA"),

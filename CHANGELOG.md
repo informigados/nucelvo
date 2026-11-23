@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.0 · About and system inventory preview
+
+- Adds an About tab with author credits, the installed version, and a manual check for GitHub releases.
+- Adds a desktop shortcut to the Windows installer and refreshes the Start menu shortcut.
+- Shows active Windows displays, their current resolution, and refresh rate in System.
+- Adds physical network adapter inventory with connection status, link speed, and cumulative traffic.
+
 ## 0.4.0 · Interface and navigation preview
 
 - Adds distinct navigation and sensor icons, including a compact navigation rail.

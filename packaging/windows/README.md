@@ -21,7 +21,9 @@ runs a desktop smoke test and verifies the contents of the portable ZIP.
 
 Open the setup executable and follow the English or Brazilian Portuguese
 wizard. Setup defaults to `%LOCALAPPDATA%\Programs\Nucelvo` and adds a Start
-menu shortcut for the current Windows user. Administrator access is unnecessary.
+menu and desktop shortcuts for the current Windows user. Administrator access is unnecessary.
+Updates refresh managed shortcuts. Setup preserves an existing desktop shortcut with
+the same name when it was created outside the installer.
 
 To remove the app, open **Settings → Apps → Installed apps** and choose
 **Uninstall** for Nucelvo. Preferences and exported reports are retained.

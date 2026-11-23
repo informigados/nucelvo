@@ -14,6 +14,8 @@ Nucelvo reads system, CPU, memory, motherboard, graphics, and storage informatio
 | GPU usage, VRAM used, fan speed, and power | Compatible NVIDIA GPUs through their graphics driver | Readings exposed by Linux hardware monitoring interfaces |
 | Power source, system battery, charge, and charging status | Windows power status, aggregated by the operating system | System power supplies and individual batteries exposed by the kernel |
 | Drive health | Native NVMe health logs and ATA SMART where the Windows storage driver exposes them | Optional smartmontools integration when `smartctl` is installed and permitted to read the device |
+| Active display resolution and refresh rate | Windows desktop display settings | Pending |
+| Physical Ethernet and Wi-Fi adapters | Windows IP Helper status, negotiated link speeds, and cumulative traffic | Kernel interfaces and counters. Link speed is shown when the driver exposes it. |
 
 Windows NVIDIA readings were verified on a GeForce GTX 1060 6GB. The driver supplies GPU fan speed as a percentage of its maximum and power in watts. An ACPI thermal zone represents a firmware-defined part of the system. A processor package temperature requires a source that identifies the processor package.
 

@@ -129,6 +129,14 @@ impl Field {
     pub fn group(&self, pt: bool) -> String {
         let label = self.category.label(pt);
         let (device, number) = match self.category {
+            Category::System if self.device >= 20_000 => {
+                let adapter = if pt {
+                    "Adaptador de rede"
+                } else {
+                    "Network adapter"
+                };
+                return format!("{adapter} {}", self.device - 19_999);
+            }
             Category::System if self.device == 1 => {
                 return if pt {
                     "Energia e bateria"
@@ -136,6 +144,10 @@ impl Field {
                     "Power and battery"
                 }
                 .into();
+            }
+            Category::System if self.device >= 10_000 => {
+                let display = if pt { "Monitor" } else { "Display" };
+                return format!("{display} {}", self.device - 9_999);
             }
             Category::System if self.device > 1 => {
                 let battery = if pt { "Bateria" } else { "Battery" };
