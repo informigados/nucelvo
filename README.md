@@ -11,7 +11,7 @@ Free, open-source hardware inventory and live sensor monitoring for Windows and 
 
 ## ⬇️ Download for Windows
 
-The [GitHub release](https://github.com/informigados/nucelvo/releases/tag/v0.3.0) includes a Windows x64 installer, a portable ZIP, and SHA-256 checksums. The installer runs for the current user. To use the portable edition, extract the ZIP and open `nucelvo.exe`.
+The [GitHub release](https://github.com/informigados/nucelvo/releases/tag/v0.4.0) includes a Windows x64 installer, a portable ZIP, and SHA-256 checksums. The installer runs for the current user. To use the portable edition, extract the ZIP and open `nucelvo.exe`.
 
 ## 🖥️ What you can do
 
@@ -20,7 +20,7 @@ The [GitHub release](https://github.com/informigados/nucelvo/releases/tag/v0.3.0
 - On supported NVIDIA cards in Windows, monitor GPU temperature, usage, VRAM usage, fan speed, and power from the installed graphics driver. Sensor filters group readings by component or temperature.
 - Check drive alerts, power-on hours, SSD endurance used, and other storage health readings when available. The System tab also shows power and battery information.
 - Preview and save reports as JSON, TXT, CSV, or standalone HTML. Share-safe reports omit serial numbers, volume names, and volume paths by default.
-- Run offline without an account. The interface follows the system theme and opens in English. Brazilian Portuguese is available in the language menu.
+- Run offline without an account. The interface opens in English and follows the system theme until you choose light or dark. The language menu also offers Brazilian Portuguese.
 
 ## 🚀 Run from source
 

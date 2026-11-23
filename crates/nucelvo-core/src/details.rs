@@ -50,6 +50,8 @@ pub enum Value {
 pub struct Field {
     pub category: Category,
     pub device: usize,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub storage_parent: Option<usize>,
     pub key: &'static str,
     #[serde(skip)]
     pub labels: (&'static str, &'static str),
@@ -81,6 +83,7 @@ impl Field {
         Self {
             category,
             device,
+            storage_parent: None,
             key,
             labels,
             value,

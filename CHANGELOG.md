@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.0 · Interface and navigation preview
+
+- Adds distinct navigation and sensor icons, including a compact navigation rail.
+- Adds action icons and persistent light and dark theme controls beside the language selector.
+- Adds collapsible charts to inventory tabs with matching live readings.
+- Groups verified volumes under their physical drive and adds a drive selector.
+- Adds expandable explanations for inventory fields such as uptime, graphics memory, and storage health.
+
 ## 0.3.0 · Storage health preview
 
 - Adds drive failure alerts, power-on hours, power cycles, and drive temperature when available.

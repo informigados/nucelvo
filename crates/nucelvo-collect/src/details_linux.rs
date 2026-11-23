@@ -384,6 +384,7 @@ fn storage(fields: &mut Vec<Field>) {
     const SOURCE: &str = "sysfs · block";
     let health = super::storage_health::linux::Probe::new();
     let mut count = 0;
+    let mut physical_paths = Vec::new();
     for path in entries("/sys/block").unwrap_or_default() {
         let Some(name) = path.file_name().and_then(|name| name.to_str()) else {
             continue;
@@ -429,6 +430,9 @@ fn storage(fields: &mut Vec<Field>) {
             SOURCE,
         ));
         if device.exists() {
+            if let Ok(canonical) = path.canonicalize() {
+                physical_paths.push((canonical, count));
+            }
             fields.extend(health.collect(count, name));
         }
         count += 1;
@@ -444,7 +448,7 @@ fn storage(fields: &mut Vec<Field>) {
         ));
     }
     let mounts = read("/proc/self/mountinfo").unwrap_or_default();
-    for (index, (mount, kind)) in mounts
+    for (index, (mount, kind, block)) in mounts
         .lines()
         .filter_map(|line| {
             let (head, tail) = line.split_once(" - ")?;
@@ -454,13 +458,16 @@ fn storage(fields: &mut Vec<Field>) {
             if !origin.starts_with("/dev/") {
                 return None;
             }
-            Some((head.split_whitespace().nth(4)?, kind))
+            let mut head = head.split_whitespace();
+            let block = head.nth(2)?;
+            Some((head.nth(1)?, kind, block))
         })
         .take(256)
         .enumerate()
     {
         const MOUNT: &str = "/proc/self/mountinfo · statvfs";
         let device = 10_000 + index;
+        let first_field = fields.len();
         let mount = mount
             .replace("\\040", " ")
             .replace("\\011", "\t")
@@ -503,6 +510,15 @@ fn storage(fields: &mut Vec<Field>) {
             "bytes",
             MOUNT,
         ));
+        if let Ok(path) = Path::new("/sys/dev/block").join(block).canonicalize()
+            && let Some((_, parent)) = physical_paths
+                .iter()
+                .find(|(disk, _)| path.starts_with(disk))
+        {
+            for field in &mut fields[first_field..] {
+                field.storage_parent = Some(*parent);
+            }
+        }
     }
 }
 

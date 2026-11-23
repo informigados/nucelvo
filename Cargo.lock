@@ -2722,7 +2722,7 @@ dependencies = [
 
 [[package]]
 name = "nucelvo"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "arboard",
  "chrono",
@@ -2743,7 +2743,7 @@ dependencies = [
 
 [[package]]
 name = "nucelvo-collect"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "chrono",
  "futures",
@@ -2761,7 +2761,7 @@ dependencies = [
 
 [[package]]
 name = "nucelvo-core"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "chrono",
  "serde",
@@ -2769,7 +2769,7 @@ dependencies = [
 
 [[package]]
 name = "nucelvo-report"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "chrono",
  "csv",

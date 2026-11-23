@@ -1,6 +1,7 @@
 #![cfg_attr(all(windows, not(debug_assertions)), windows_subsystem = "windows")]
 
 mod graph;
+mod inventory_view;
 mod live;
 mod preferences;
 #[cfg(windows)]
@@ -9,6 +10,7 @@ mod workers;
 
 use std::{
     cell::{Cell, RefCell},
+    collections::BTreeMap,
     io,
     path::PathBuf,
     rc::Rc,
@@ -19,21 +21,21 @@ use std::{
 
 use chrono::{Local, Utc};
 use nucelvo_core::{Category, Monitor, Snapshot, State};
-use nucelvo_report::{
-    Format, Report, Scope, field_display, sensor_name, sensor_value, source_label,
-};
-use preferences::Language;
+use nucelvo_report::{Format, Report, Scope, sensor_name, sensor_value, source_label};
+use preferences::{Language, Preferences, Theme};
 use slint::{ComponentHandle, Model, ModelRc, SharedString, Timer, TimerMode, VecModel};
 
 slint::include_modules!();
 
 const SENSOR_PAGE: i32 = 7;
+const STORAGE_PAGE: i32 = 5;
 const EXPORT_PAGE: i32 = 8;
 const PAGE_SIZE: usize = 100;
 const RANGES: [u64; 3] = [60, 300, 900];
 
 #[derive(Default)]
 struct App {
+    preferences: Preferences,
     snapshot: Option<Snapshot>,
     pending_base: Option<Snapshot>,
     monitor: Monitor,
@@ -41,6 +43,10 @@ struct App {
     metric_query: String,
     selected: String,
     metric_keys: Vec<String>,
+    inline_open: [bool; 7],
+    inline_selected: [String; 7],
+    storage_choices: Vec<usize>,
+    storage_selected: Option<usize>,
     live_metrics: Rc<VecModel<LiveMetric>>,
     clipboard: Option<arboard::Clipboard>,
     report: Option<(Arc<Report>, Format)>,
@@ -57,14 +63,75 @@ fn category(page: i32) -> Option<Category> {
         .and_then(|index| Category::ALL.get(index).copied())
 }
 
-fn inventory(app: &App, window: &MainWindow) {
+fn inventory(app: &mut App, window: &MainWindow) {
     let pt = window.get_portuguese();
     let selected = category(window.get_page());
     let query = app.inventory_query.trim().to_lowercase();
-    let mut rows: Vec<Row> = app
+    let fields = app
         .snapshot
+        .as_ref()
+        .map_or(&[][..], |snapshot| snapshot.fields.as_slice());
+    let storage = window.get_page() == STORAGE_PAGE;
+    let drives = if storage {
+        inventory_view::drives(fields, pt)
+    } else {
+        BTreeMap::new()
+    };
+    let models: BTreeMap<_, _> = if storage {
+        fields
+            .iter()
+            .filter_map(|field| match &field.value {
+                Some(nucelvo_core::Value::Text(name))
+                    if field.category == Category::Storage && field.key == "model" =>
+                {
+                    Some((field.device, name.trim()))
+                }
+                _ => None,
+            })
+            .collect()
+    } else {
+        BTreeMap::new()
+    };
+    let mut volumes: BTreeMap<usize, Vec<usize>> = BTreeMap::new();
+    if storage {
+        let labels: Vec<SharedString> = std::iter::once(
+            if pt {
+                "Todas as unidades"
+            } else {
+                "All drives"
+            }
+            .into(),
+        )
+        .chain(drives.values().map(|label| label.as_str().into()))
+        .collect();
+        if !window
+            .get_storage_options()
+            .iter()
+            .eq(labels.iter().cloned())
+        {
+            window.set_storage_options(model(labels));
+        }
+        app.storage_choices = drives.keys().copied().collect();
+        let selected_index = app
+            .storage_selected
+            .and_then(|id| drives.keys().position(|key| *key == id))
+            .map_or(0, |i| i as i32 + 1);
+        if selected_index == 0 {
+            app.storage_selected = None;
+        }
+        window.set_storage_index(selected_index);
+        for field in fields
+            .iter()
+            .filter(|field| field.category == Category::Storage && field.device >= 10_000)
+        {
+            let entries = volumes.entry(inventory_view::drive(field)).or_default();
+            if entries.last() != Some(&field.device) {
+                entries.push(field.device);
+            }
+        }
+    }
+    let mut matching: Vec<_> = fields
         .iter()
-        .flat_map(|snapshot| snapshot.fields.iter())
         .filter(|field| {
             selected.is_none_or(|category| field.category == category)
                 && (selected.is_some()
@@ -74,17 +141,45 @@ fn inventory(app: &App, window: &MainWindow) {
                         "model" | "physical_memory" | "os" | "adapter" | "pci_id" | "disk"
                     ))
         })
-        .map(|field| Row {
-            label: field.label(pt).into(),
-            value: field_display(field, pt).into(),
-            detail: source_label(field.source, pt).into(),
-            group: field.group(pt).into(),
-            group_start: false,
-            copyable: field.state == State::Ok,
-            warning: field.key == "drive_health"
-                && matches!(field.value.as_ref(), Some(nucelvo_core::Value::Text(value)) if value == "alert")
-                || field.key == "ssd_endurance_used"
-                    && matches!(field.value.as_ref(), Some(nucelvo_core::Value::Number(value)) if *value >= 100),
+        .filter(|field| {
+            !storage
+                || app
+                    .storage_selected
+                    .is_none_or(|id| inventory_view::drive(field) == id)
+        })
+        .collect();
+    if storage {
+        if query.is_empty() {
+            matching.retain(|field| field.key != "model" || !models.contains_key(&field.device));
+        }
+        matching.sort_by_key(|field| {
+            (
+                inventory_view::drive(field),
+                inventory_view::section(field),
+                field.device,
+            )
+        });
+    }
+    let mut rows: Vec<Row> = matching
+        .into_iter()
+        .map(|field| {
+            let mut row = inventory_view::row(field, pt);
+            if storage {
+                let drive = inventory_view::drive(field);
+                row.group = drives[&drive].as_str().into();
+                row.group_model = models.get(&drive).copied().unwrap_or("").into();
+                row.subgroup = if inventory_view::section(field) == 2 {
+                    if pt {
+                        "Saúde e uso"
+                    } else {
+                        "Health and usage"
+                    }
+                    .into()
+                } else {
+                    inventory_view::subgroup(field, &volumes).into()
+                };
+            }
+            row
         })
         .filter(|row| {
             [
@@ -92,18 +187,24 @@ fn inventory(app: &App, window: &MainWindow) {
                 row.value.as_str(),
                 row.detail.as_str(),
                 row.group.as_str(),
+                row.note.as_str(),
             ]
             .iter()
             .any(|value| value.to_lowercase().contains(&query))
         })
         .collect();
     let mut previous = SharedString::default();
+    let mut previous_subgroup = SharedString::default();
     for row in &mut rows {
         if row.group != previous {
-            row.group_start = true;
+            row.group_start = selected.is_none_or(|category| row.group != category.label(pt));
             previous = row.group.clone();
+            previous_subgroup = "".into();
         }
+        row.subgroup_start = !row.subgroup.is_empty() && row.subgroup != previous_subgroup;
+        previous_subgroup = row.subgroup.clone();
     }
+    window.set_expanded_note(-1);
     window.set_rows(model(rows));
     if let Some(snapshot) = &app.snapshot {
         let format = if pt {
@@ -124,8 +225,18 @@ fn inventory(app: &App, window: &MainWindow) {
 
 fn monitor(app: &mut App, window: &MainWindow, rebuild_choices: bool) {
     let pt = window.get_portuguese();
-    if matches!(window.get_page(), 0 | 1 | 2 | 4) {
-        let metrics = live::metrics(&app.monitor, window.get_page(), window.get_paused(), pt);
+    let page = window.get_page();
+    if matches!(page, 0 | 1 | 2 | 4) {
+        let metrics = live::metrics(&app.monitor, page, window.get_paused(), pt);
+        if page == 4 {
+            window.set_live_device(
+                metrics
+                    .iter()
+                    .find(|metric| !metric.detail.is_empty())
+                    .map(|metric| metric.detail.clone())
+                    .unwrap_or_default(),
+            );
+        }
         if metrics.len() == app.live_metrics.row_count() {
             for (index, reading) in metrics.into_iter().enumerate() {
                 if app.live_metrics.row_data(index).as_ref() != Some(&reading) {
@@ -136,17 +247,37 @@ fn monitor(app: &mut App, window: &MainWindow, rebuild_choices: bool) {
             app.live_metrics.set_vec(metrics);
         }
     }
-    if window.get_page() != SENSOR_PAGE {
+    let inline = page < SENSOR_PAGE;
+    let available = inline
+        && (matches!(page, 0..=2)
+            || app.monitor.series.values().any(|series| {
+                series
+                    .points
+                    .back()
+                    .is_some_and(|sample| live::inline_matches(page, sample))
+            }));
+    window.set_inline_chart_available(available);
+    let open = available && app.inline_open[page as usize];
+    window.set_inline_chart_open(open);
+    if page != SENSOR_PAGE && !open {
         return;
     }
-    let query = app.metric_query.trim().to_lowercase();
+    let query = if inline {
+        String::new()
+    } else {
+        app.metric_query.trim().to_lowercase()
+    };
     let mut options = app
         .monitor
         .series
         .iter()
         .filter_map(|(id, series)| {
             let sample = series.points.back()?;
-            if !live::group_matches(window.get_sensor_group(), sample) {
+            if !(if inline {
+                live::inline_matches(page, sample)
+            } else {
+                live::group_matches(window.get_sensor_group(), sample)
+            }) {
                 return None;
             }
             let name = sensor_name(sample, pt);
@@ -176,10 +307,15 @@ fn monitor(app: &mut App, window: &MainWindow, rebuild_choices: bool) {
     if rebuild_choices || keys != app.metric_keys {
         app.metric_keys = keys;
         window.set_metric_options(model(names.into_iter().map(SharedString::from).collect()));
+        let selected = if inline {
+            &app.inline_selected[page as usize]
+        } else {
+            &app.selected
+        };
         let index = app
             .metric_keys
             .iter()
-            .position(|key| key == &app.selected)
+            .position(|key| key == selected)
             .unwrap_or(0);
         window.set_metric_index(if app.metric_keys.is_empty() {
             -1
@@ -209,6 +345,7 @@ fn monitor(app: &mut App, window: &MainWindow, rebuild_choices: bool) {
         };
         window.set_current_value(live::current(sample, window.get_paused(), pt).into());
         window.set_metric_tone(live::tone(sample));
+        window.set_metric_icon(live::icon(sample));
         window.set_low_value(stat(series.min));
         window.set_high_value(stat(series.max));
         window.set_average_value(stat(series.mean));
@@ -224,6 +361,7 @@ fn monitor(app: &mut App, window: &MainWindow, rebuild_choices: bool) {
         let plot = graph::plot(series, now, range, pt);
         window.set_has_graph(!plot.path.is_empty());
         window.set_graph(plot.path.into());
+        window.set_graph_area(plot.area.into());
         window.set_axis_low(plot.low.into());
         window.set_axis_high(plot.high.into());
     } else {
@@ -237,6 +375,7 @@ fn monitor(app: &mut App, window: &MainWindow, rebuild_choices: bool) {
         }
         window.set_metric_detail("".into());
         window.set_metric_tone(0);
+        window.set_metric_icon(9);
         window.set_axis_low("".into());
         window.set_axis_high("".into());
         window.set_has_graph(false);
@@ -335,11 +474,9 @@ fn bind(
         }
         window.set_page(page);
         if page < SENSOR_PAGE {
-            inventory(&app, &window);
+            inventory(&mut app, &window);
         }
-        if matches!(page, 0 | 1 | 2 | 4 | SENSOR_PAGE) {
-            monitor(&mut app, &window, true);
-        }
+        monitor(&mut app, &window, true);
         if page == EXPORT_PAGE {
             clear_preview(&mut app, &window);
         }
@@ -355,13 +492,29 @@ fn bind(
         } else {
             Language::English
         };
-        window.set_save_failed(
-            !(preference(&window, language) && preferences::save(language).is_ok()),
-        );
         let mut app = data.borrow_mut();
-        inventory(&app, &window);
+        app.preferences.language = language;
+        window.set_save_failed(
+            !(preference(&window, language) && preferences::save(app.preferences).is_ok()),
+        );
+        inventory(&mut app, &window);
         monitor(&mut app, &window, true);
         clear_preview(&mut app, &window);
+    });
+    let weak = window.as_weak();
+    let data = Rc::clone(app);
+    window.on_theme_selected(move |choice| {
+        let theme = match choice {
+            1 => Theme::Light,
+            2 => Theme::Dark,
+            _ => return,
+        };
+        if let Some(window) = weak.upgrade() {
+            let mut app = data.borrow_mut();
+            app.preferences.theme = theme;
+            window.invoke_apply_theme(theme.choice());
+            window.set_save_failed(preferences::save(app.preferences).is_err());
+        }
     });
     let weak = window.as_weak();
     window.on_refresh(move || {
@@ -379,7 +532,19 @@ fn bind(
         };
         let mut app = data.borrow_mut();
         app.inventory_query = query.into();
-        inventory(&app, &window);
+        inventory(&mut app, &window);
+    });
+    let weak = window.as_weak();
+    let data = Rc::clone(app);
+    window.on_storage_selected(move |index| {
+        if let Some(window) = weak.upgrade() {
+            let mut app = data.borrow_mut();
+            let selected = usize::try_from(index - 1)
+                .ok()
+                .and_then(|index| app.storage_choices.get(index).copied());
+            app.storage_selected = selected;
+            inventory(&mut app, &window);
+        }
     });
     let weak = window.as_weak();
     let data = Rc::clone(app);
@@ -430,15 +595,20 @@ fn bind(
     let weak = window.as_weak();
     let data = Rc::clone(app);
     window.on_open_sensor(move |key| {
-        if let Some(window) = weak.upgrade() {
-            {
-                let mut app = data.borrow_mut();
-                app.selected = key.into();
-                app.metric_query.clear();
+        if let Some(window) = weak.upgrade()
+            && window.get_inline_chart_available()
+        {
+            let mut app = data.borrow_mut();
+            let page = window.get_page() as usize;
+            app.inline_open[page] = if key.is_empty() {
+                !app.inline_open[page]
+            } else {
+                true
+            };
+            if !key.is_empty() {
+                app.inline_selected[page] = key.into();
             }
-            window.set_sensor_group(0);
-            window.set_metric_search_text("".into());
-            window.invoke_navigate(SENSOR_PAGE);
+            monitor(&mut app, &window, true);
         }
     });
     let weak = window.as_weak();
@@ -449,7 +619,11 @@ fn bind(
         };
         let mut app = data.borrow_mut();
         if let Some(key) = app.metric_keys.get(index.max(0) as usize).cloned() {
-            app.selected = key;
+            if window.get_page() == SENSOR_PAGE {
+                app.selected = key;
+            } else {
+                app.inline_selected[window.get_page() as usize] = key;
+            }
             window.set_metric_index(index);
             monitor(&mut app, &window, false);
         }
@@ -702,14 +876,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             slint::CloseRequestResponse::HideWindow
         }
     });
-    preference(
-        &window,
-        if smoke {
-            Language::English
-        } else {
-            preferences::load()
-        },
-    );
+    let settings = if smoke {
+        Preferences::default()
+    } else {
+        preferences::load()
+    };
+    preference(&window, settings.language);
+    if settings.theme != Theme::System {
+        window.invoke_apply_theme(settings.theme.choice());
+    }
     window.set_refreshing(true);
     let updates = Arc::new(Mutex::new(workers::Updates::default()));
     let control = Arc::new(workers::Control::default());
@@ -722,7 +897,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let hardware = thread::Builder::new()
         .name("hardware-inventory".into())
         .spawn(move || workers::hardware(options.0, options.1, requests))?;
-    let app = Rc::new(RefCell::new(App::default()));
+    let app = Rc::new(RefCell::new(App {
+        preferences: settings,
+        ..App::default()
+    }));
     window.set_live_metrics(ModelRc::from(Rc::clone(&app.borrow().live_metrics)));
     bind(&window, &app, &control, refresh);
     monitor(&mut app.borrow_mut(), &window, true);
@@ -783,15 +961,35 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 && window.get_overview_title() == "Visão geral";
             let english_restored = preference(&window, Language::English)
                 && window.get_overview_title() == "Overview";
+            window.invoke_apply_theme(Theme::Light.choice());
+            let light = !window.get_dark_mode();
+            window.invoke_apply_theme(Theme::Dark.choice());
+            let theme_switch = light && window.get_dark_mode();
+            window.invoke_open_sensor("cpu:load".into());
+            let inline_cpu = window.get_page() == 0
+                && window.get_inline_chart_open()
+                && window.get_has_graph();
             let sensor_link = if require_nvidia {
                 let key = app.borrow().live_metrics.row_data(3).unwrap_or_default().key;
                 window.invoke_open_sensor(key.clone());
                 key.starts_with("gpu:nvidia:")
-                    && window.get_page() == SENSOR_PAGE
+                    && window.get_page() == 0
+                    && window.get_inline_chart_open()
                     && window.get_metric_tone() == 3
             } else {
                 true
             };
+            window.invoke_navigate(STORAGE_PAGE);
+            let storage_layout = !require_storage || {
+                let nested = window.get_rows().iter().any(|row| row.subgroup_start && !row.group_start
+                    && row.group.starts_with("Drive ") && row.subgroup.starts_with("Volume"));
+                window.invoke_storage_selected(1);
+                let single = window.get_rows().iter().filter(|row| row.group_start).count() == 1;
+                window.invoke_storage_selected(0);
+                nested && single
+            };
+            window.invoke_navigate(6);
+            let uptime_note = window.get_rows().iter().any(|row| row.label == "Uptime at capture" && !row.note.is_empty());
             window.invoke_navigate(SENSOR_PAGE);
             let chart_visible = window.get_has_graph();
             let state = app.borrow();
@@ -845,8 +1043,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         sensors.save(&dir.path().join(format!("sensors.{}", format.extension())), *format).is_ok()
                     })
             });
-            result.set(english && pt && english_restored && sensor_link && real && chart_visible && saved && !report.is_empty()
-                && (!require_storage || storage_readings));
+            result.set(english && pt && english_restored && theme_switch && inline_cpu && sensor_link && storage_layout && uptime_note
+                && real && chart_visible && saved && !report.is_empty() && (!require_storage || storage_readings));
             println!(
                 "Inventory, chart, localization and exports: {} ms. Logical CPUs with a valid sample: {logical}.",
                 started.elapsed().as_millis(),

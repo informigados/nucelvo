@@ -1,4 +1,6 @@
-﻿import { Button, CheckBox, ComboBox, LineEdit, ListView, Palette, ScrollView } from "std-widgets.slint";
+﻿import { CheckBox, ComboBox, LineEdit, ListView, Palette, ScrollView } from "std-widgets.slint";
+
+import { ActionButton, ChartPlot, Glyph, ThemeOption } from "visuals.slint";
 
 export struct Row {
     label: string,
@@ -6,6 +8,10 @@ export struct Row {
     detail: string,
     group: string,
     group-start: bool,
+    group-model: string,
+    subgroup: string,
+    subgroup-start: bool,
+    note: string,
     copyable: bool,
     warning: bool,
 }
@@ -16,6 +22,7 @@ export struct LiveMetric {
     detail: string,
     key: string,
     tone: int,
+    glyph: int,
     available: bool,
 }
 
@@ -25,11 +32,13 @@ component MetricTile inherits Rectangle {
     in property <color> ink;
     in property <color> muted;
     in property <color> hover;
+    in property <bool> show-detail: true;
+    in property <bool> compact;
     callback activated();
     min-width: 0px;
     preferred-width: 120px;
     horizontal-stretch: 1;
-    height: 80px;
+    height: root.show-detail ? 80px : 64px;
     border-radius: 5px;
     background: touch.has-hover || keyboard.has-focus ? root.hover : transparent;
     accessible-role: button;
@@ -38,21 +47,30 @@ component MetricTile inherits Rectangle {
     accessible-action-default => { if (root.metric.key != "") { root.activated(); } }
     forward-focus: keyboard;
     VerticalLayout {
-        padding: 8px;
+        padding: root.compact ? 6px : 8px;
         spacing: 3px;
         alignment: center;
-        Text { text: root.metric.title; color: root.ink; font-size: 13px; font-weight: 600; overflow: elide; accessible-role: none; }
+        HorizontalLayout {
+            spacing: root.compact ? 5px : 7px;
+            Glyph {
+                symbol: root.metric.glyph;
+                ink: root.accent;
+                width: root.compact ? 13px : 15px;
+                height: self.width;
+            }
+            Text { text: root.metric.title; color: root.ink; font-size: root.compact ? 12px : 13px; font-weight: 600; overflow: elide; accessible-role: none; }
+        }
         Text {
             text: root.metric.value;
             color: root.metric.available ? root.accent : root.muted;
-            font-size: root.metric.available ? 22px : 15px;
+            font-size: root.metric.available ? (root.compact ? 18px : 22px) : 15px;
             font-weight: 700;
             height: 28px;
             vertical-alignment: center;
             overflow: elide;
             accessible-role: none;
         }
-        Text { text: root.metric.detail; height: 14px; color: root.muted; font-size: 11px; overflow: elide; accessible-role: none; }
+        if root.show-detail : Text { text: root.metric.detail; height: 14px; color: root.muted; font-size: 11px; overflow: elide; accessible-role: none; }
     }
     keyboard := FocusScope {
         enabled: root.metric.key != "";
@@ -76,6 +94,8 @@ component NavItem inherits Rectangle {
     in property <bool> active;
     in property <color> accent;
     in property <color> selection;
+    in property <int> glyph;
+    in property <bool> compact;
     callback activated();
     height: 36px;
     border-radius: 6px;
@@ -103,9 +123,15 @@ component NavItem inherits Rectangle {
         border-radius: 2px;
         background: root.accent;
     }
-    Text {
-        x: 12px;
-        width: parent.width - 20px;
+    Glyph {
+        x: root.compact ? (parent.width - self.width) / 2 : 11px;
+        y: (parent.height - self.height) / 2;
+        symbol: root.glyph;
+        ink: root.active ? root.accent : root.ink;
+    }
+    if !root.compact : Text {
+        x: 39px;
+        width: parent.width - 47px;
         height: parent.height;
         text: root.label;
         color: root.active ? root.accent : root.ink;
@@ -118,6 +144,7 @@ component NavItem inherits Rectangle {
     mouse := TouchArea {
         clicked => { keyboard.focus(); root.activated(); }
     }
+    Tooltip { text: @markdown("\{root.label}"); }
 }
 
 export component MainWindow inherits Window {
@@ -141,6 +168,7 @@ export component MainWindow inherits Window {
     in property <int> metric-index: -1;
     in property <string> current-value: "—";
     in property <[LiveMetric]> live-metrics;
+    in property <string> live-device;
     in property <int> sensor-group;
     in property <int> metric-tone;
     in-out property <string> metric-search-text;
@@ -149,6 +177,13 @@ export component MainWindow inherits Window {
     in property <string> average-value: "—";
     in property <string> metric-detail;
     in property <string> graph;
+    in property <string> graph-area;
+    in property <int> metric-icon: 9;
+    in property <bool> inline-chart-available;
+    in property <bool> inline-chart-open;
+    in-out property <int> expanded-note: -1;
+    in property <[string]> storage-options;
+    in property <int> storage-index;
     in property <string> axis-low;
     in property <string> axis-high;
     in property <bool> has-graph;
@@ -174,7 +209,11 @@ export component MainWindow inherits Window {
     private property <[string]> sensor-groups: [@tr("All sensors"), "CPU", @tr("Memory"), @tr("Graphics"), @tr("Temperature")];
     private property <[string]> export-scopes: [@tr("Full inventory"), @tr("One category"), @tr("Current sensor readings"), @tr("Sensor history · 5 minutes"), @tr("Sensor history · 15 minutes")];
     in property <bool> narrow;
-    private property <bool> dark: Palette.color-scheme == ColorScheme.dark;
+    out property <bool> dark-mode: Palette.color-scheme == ColorScheme.dark;
+    private property <bool> dark: root.dark-mode;
+    public function apply-theme(choice: int) {
+        Palette.color-scheme = choice == 2 ? ColorScheme.dark : ColorScheme.light;
+    }
     private property <color> ink: dark ? #edf6f2 : #192e28;
     private property <color> muted: dark ? #a9c1b8 : #456159;
     private property <color> line: dark ? #344941 : #c6d8d0;
@@ -187,8 +226,10 @@ export component MainWindow inherits Window {
 
     callback navigate(int);
     callback language-selected(int);
+    callback theme-selected(int);
     callback refresh();
     callback search(string);
+    callback storage-selected(int);
     callback copy(string);
     callback pause();
     callback metric(int);
@@ -203,6 +244,10 @@ export component MainWindow inherits Window {
     callback open-folder();
 
     FocusScope {
+        x: 0px;
+        y: 0px;
+        width: parent.width;
+        height: parent.height;
         key-pressed(event) => {
             if (event.modifiers.control && (event.text == "f" || event.text == "F") && root.page < 8) {
                 if (root.page == 7) { metric-search.focus(); }
@@ -213,6 +258,10 @@ export component MainWindow inherits Window {
         }
 
         VerticalLayout {
+            x: 0px;
+            y: 0px;
+            width: parent.width;
+            height: parent.height;
             Rectangle {
                 height: 64px;
                 background: root.rail;
@@ -232,26 +281,59 @@ export component MainWindow inherits Window {
                         }
                     }
                     Rectangle { horizontal-stretch: 1; }
-                    if root.narrow : VerticalLayout {
-                        width: 158px;
-                        alignment: center;
-                        ComboBox {
-                            height: 34px;
-                            accessible-label: @tr("Navigation");
-                            model: root.inventory-tabs;
-                            current-index: root.page;
-                            selected(_) => { root.navigate(self.current-index); }
-                        }
-                    }
                     VerticalLayout {
-                        width: 170px;
                         alignment: center;
-                        ComboBox {
-                            height: 34px;
-                            accessible-label: @tr("Language");
-                            model: ["English", "Português (Brasil)"];
-                            current-index: root.portuguese ? 1 : 0;
-                            selected(_) => { root.language-selected(self.current-index); }
+                        HorizontalLayout {
+                            spacing: 8px;
+                            VerticalLayout {
+                                width: 18px;
+                                alignment: center;
+                                Image {
+                                    width: 18px;
+                                    height: 18px;
+                                    source: @image-url("icons/globe.svg");
+                                    colorize: root.muted;
+                                    accessible-role: none;
+                                }
+                            }
+                            ComboBox {
+                                width: 170px;
+                                height: 34px;
+                                accessible-label: @tr("Language");
+                                model: ["English", "Português (Brasil)"];
+                                current-index: root.portuguese ? 1 : 0;
+                                selected(_) => { root.language-selected(self.current-index); }
+                            }
+                            Rectangle {
+                                width: 80px;
+                                height: 34px;
+                                border-radius: 6px;
+                                background: root.surface;
+                                border-width: 1px;
+                                border-color: root.line;
+                                HorizontalLayout {
+                                    padding: 3px;
+                                    spacing: 2px;
+                                    ThemeOption {
+                                        label: @tr("Light theme");
+                                        icon: @image-url("icons/sun.svg");
+                                        ink: root.muted;
+                                        accent: root.accent;
+                                        selection: root.raised;
+                                        checked: !root.dark;
+                                        clicked => { root.theme-selected(1); }
+                                    }
+                                    ThemeOption {
+                                        label: @tr("Dark theme");
+                                        icon: @image-url("icons/moon.svg");
+                                        ink: root.muted;
+                                        accent: root.accent;
+                                        selection: root.raised;
+                                        checked: root.dark;
+                                        clicked => { root.theme-selected(2); }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -259,15 +341,17 @@ export component MainWindow inherits Window {
             Rectangle { height: 1px; background: root.line; }
             HorizontalLayout {
                 spacing: 0px;
-                if !root.narrow : Rectangle {
-                    width: 152px;
+                Rectangle {
+                    width: root.narrow ? 55px : 174px;
                     background: root.rail;
                     VerticalLayout {
-                        padding: 12px;
+                        padding: root.narrow ? 7px : 12px;
                         spacing: 6px;
                         alignment: start;
                         for title[index] in root.inventory-tabs : NavItem {
                             label: title;
+                            glyph: index;
+                            compact: root.narrow;
                             active: index == root.page;
                             accent: root.accent;
                             selection: root.raised;
@@ -294,16 +378,24 @@ export component MainWindow inherits Window {
                             horizontal-stretch: 1;
                             overflow: elide;
                         }
-                        if root.page < 7 : Button {
+                        if root.page < 7 : ActionButton {
+                            icon: @image-url("icons/refresh.svg");
                             text: root.refreshing ? @tr("Refreshing…") : @tr("Refresh inventory");
                             enabled: !root.refreshing;
                             clicked => { root.refresh(); }
                         }
-                        if root.page == 7 : Button {
+                        if root.page == 7 : ActionButton {
+                            icon: root.paused ? @image-url("icons/play.svg") : @image-url("icons/pause.svg");
                             text: root.paused ? @tr("Resume") : @tr("Pause");
                             clicked => { root.pause(); }
                         }
-                        if root.page != 8 : Button {
+                        if root.inline-chart-available : ActionButton {
+                            icon: @image-url("icons/chart.svg");
+                            text: root.inline-chart-open ? @tr("Hide chart") : @tr("Show chart");
+                            clicked => { root.open-sensor(""); }
+                        }
+                        if root.page != 8 : ActionButton {
+                            icon: @image-url("icons/export.svg");
                             text: @tr("Export");
                             clicked => { root.navigate(8); }
                         }
@@ -315,7 +407,7 @@ export component MainWindow inherits Window {
                             horizontal-stretch: 1;
                             wrap: word-wrap;
                             color: root.ink;
-                            text: root.save-failed ? @tr("Could not save the language preference.") :
+                            text: root.save-failed ? @tr("Could not save preferences.") :
                                 root.notice == 1 ? @tr("Copied to clipboard.") :
                                 root.notice == 2 ? @tr("Could not access the clipboard.") :
                                 root.notice == 3 ? @tr("Report saved · {}", root.notice-detail) :
@@ -328,14 +420,19 @@ export component MainWindow inherits Window {
                                 root.notice == 11 ? @tr("The destination folder is unavailable. Choose another folder.") :
                                 @tr("Saving canceled.");
                         }
-                        if root.folder-ready : Button { text: @tr("Open folder"); clicked => { root.open-folder(); } }
+                        if root.folder-ready : ActionButton {
+                            icon: @image-url("icons/folder.svg");
+                            text: @tr("Open folder");
+                            clicked => { root.open-folder(); }
+                        }
                     }
 
                     VerticalLayout {
                         visible: root.page < 7;
                         height: root.page < 7 ? self.preferred-height : 0px;
                         spacing: 10px;
-                        if (root.page == 0 || root.page == 1 || root.page == 2 || root.page == 4) && root.live-metrics.length > 0 : VerticalLayout {
+                        if (root.page == 0 || root.page == 1 || root.page == 2 || root.page == 4) && root.live-metrics.length > 0
+                           && (!root.inline-chart-open || root.height >= 680px) : VerticalLayout {
                             spacing: 4px;
                             HorizontalLayout {
                                 spacing: 8px;
@@ -346,7 +443,18 @@ export component MainWindow inherits Window {
                                     font-weight: 650;
                                     vertical-alignment: center;
                                 }
-                                if root.page == 0 : Button { text: @tr("Sensors"); clicked => { root.navigate(7); } }
+                                if root.page == 0 : ActionButton {
+                                    icon: @image-url("icons/sensors.svg");
+                                    text: @tr("Sensors");
+                                    clicked => { root.navigate(7); }
+                                }
+                                if root.page == 4 : Text {
+                                    text: root.live-device;
+                                    color: root.muted;
+                                    font-size: 12px;
+                                    vertical-alignment: center;
+                                    overflow: elide;
+                                }
                             }
                             Rectangle { height: 1px; background: root.line; }
                             HorizontalLayout {
@@ -358,13 +466,58 @@ export component MainWindow inherits Window {
                                     ink: root.ink;
                                     muted: root.muted;
                                     hover: root.raised;
+                                    show-detail: root.page != 4;
+                                    compact: root.narrow && root.page == 4;
                                     activated => { root.open-sensor(metric.key); }
                                 }
                             }
                             Rectangle { height: 1px; background: root.line; }
                         }
+                        if root.inline-chart-open : VerticalLayout {
+                            spacing: 7px;
+                            HorizontalLayout {
+                                spacing: 8px;
+                                ComboBox {
+                                    accessible-label: @tr("Sensor");
+                                    horizontal-stretch: 1;
+                                    model: root.metric-options;
+                                    current-index: root.metric-index;
+                                    enabled: root.metric-options.length > 0;
+                                    selected(_) => { root.metric(self.current-index); }
+                                }
+                                ComboBox {
+                                    width: 146px;
+                                    accessible-label: @tr("History range");
+                                    model: root.times;
+                                    current-index: root.range-index;
+                                    selected(_) => { root.range-changed(self.current-index); }
+                                }
+                            }
+                            ChartPlot {
+                                height: root.narrow ? 102px : 130px;
+                                curve: root.graph; area: root.graph-area;
+                                upper: root.axis-high; lower: root.axis-low;
+                                accent: root.metric-colors[root.metric-tone];
+                                ink: root.muted; grid: root.line;
+                                has-data: root.has-graph;
+                                empty-message: @tr("Waiting for readings…");
+                            }
+                            HorizontalLayout {
+                                spacing: 7px;
+                                Glyph { symbol: root.metric-icon; ink: root.metric-colors[root.metric-tone]; width: 14px; height: 14px; }
+                                Text { text: root.current-value; color: root.ink; font-size: 12px; }
+                                Text { text: root.metric-detail; color: root.muted; font-size: 12px; overflow: elide; horizontal-stretch: 1; }
+                            }
+                        }
                         HorizontalLayout {
                             spacing: 12px;
+                            if root.page == 5 : ComboBox {
+                                width: root.narrow ? 210px : 270px;
+                                accessible-label: @tr("Storage device");
+                                model: root.storage-options;
+                                current-index: root.storage-index;
+                                selected(_) => { root.storage-selected(self.current-index); }
+                            }
                             field-search := LineEdit {
                                 placeholder-text: @tr("Search inventory");
                                 accessible-label: @tr("Search inventory");
@@ -395,29 +548,55 @@ export component MainWindow inherits Window {
                         }
                         ListView {
                             content-width: self.visible-width;
-                            for item in root.rows : Rectangle {
-                                height: item.group-start ? 94px : 58px;
+                            for item[index] in root.rows : entry := Rectangle {
+                                private property <length> header-height: (item.group-start ? 35px : 0px) + (item.subgroup-start ? 29px : 0px);
+                                private property <bool> note-open: root.expanded-note == index && item.note != "";
+                                height: header-height + 58px + (note-open ? 60px : 0px);
                                 Rectangle { y: parent.height - 1px; height: 1px; background: root.line; }
-                                if item.group-start : Text {
-                                    x: 8px;
-                                    y: 6px;
-                                    height: 26px;
-                                    width: parent.width - 16px;
-                                    text: item.group;
-                                    color: root.accent;
-                                    font-size: 12px;
-                                    font-weight: 700;
-                                    vertical-alignment: center;
-                                    overflow: elide;
-                                }
-                                HorizontalLayout {
-                                    y: item.group-start ? 36px : 0px;
-                                    height: 58px;
-                                    spacing: 12px;
+                                if item.group-start : HorizontalLayout {
+                                    y: 0px;
+                                    height: 35px;
                                     padding-left: 8px;
                                     padding-right: 8px;
+                                    spacing: 8px;
+                                    Text {
+                                        text: item.group;
+                                        color: root.accent;
+                                        font-size: 14px;
+                                        font-weight: 700;
+                                        vertical-alignment: center;
+                                        overflow: elide;
+                                        horizontal-stretch: 1;
+                                    }
+                                    if item.group-model != "" : ActionButton {
+                                        icon: @image-url("icons/copy.svg");
+                                        text: @tr("Copy model");
+                                        clicked => { root.copy(item.group-model); }
+                                    }
+                                }
+                                if item.subgroup-start : Rectangle {
+                                    y: item.group-start ? 35px : 0px;
+                                    height: 29px;
+                                    background: root.rail;
+                                    Text {
+                                        x: 16px;
+                                        width: parent.width - 24px;
+                                        height: parent.height;
+                                        text: item.subgroup;
+                                        color: root.ink;
+                                        font-size: 12px;
+                                        font-weight: 650;
+                                        vertical-alignment: center;
+                                    }
+                                }
+                                HorizontalLayout {
+                                    y: entry.header-height;
+                                    height: 58px;
+                                    spacing: 12px;
+                                    padding-left: item.subgroup == "" ? 8px : 16px;
+                                    padding-right: 8px;
                                     VerticalLayout {
-                                        width: 182px;
+                                        width: root.narrow ? 146px : 182px;
                                         alignment: center;
                                         spacing: 3px;
                                         Text { text: item.label; color: root.ink; font-weight: 600; wrap: word-wrap; }
@@ -434,14 +613,41 @@ export component MainWindow inherits Window {
                                         }
                                         Text { text: item.detail; color: root.muted; font-size: 11px; overflow: elide; }
                                     }
+                                    if item.note != "" : VerticalLayout {
+                                        alignment: center;
+                                        ActionButton {
+                                            icon: @image-url("icons/help.svg");
+                                            checked: entry.note-open;
+                                            accessible-checkable: true;
+                                            accessible-label: @tr("About {}", item.label);
+                                            clicked => { root.expanded-note = root.expanded-note == index ? -1 : index; }
+                                        }
+                                    }
                                     VerticalLayout {
                                         alignment: center;
-                                        Button {
+                                        ActionButton {
+                                            icon: @image-url("icons/copy.svg");
                                             text: @tr("Copy");
                                             accessible-label: @tr("Copy {}", item.label);
                                             enabled: item.copyable;
                                             clicked => { root.copy(item.value); }
                                         }
+                                    }
+                                }
+                                if entry.note-open : Rectangle {
+                                    y: entry.header-height + 58px;
+                                    height: 54px;
+                                    background: root.raised;
+                                    border-radius: 5px;
+                                    Text {
+                                        x: 12px;
+                                        width: parent.width - 24px;
+                                        height: parent.height;
+                                        text: item.note;
+                                        color: root.ink;
+                                        font-size: 12px;
+                                        wrap: word-wrap;
+                                        vertical-alignment: center;
                                     }
                                 }
                             }
@@ -516,53 +722,22 @@ export component MainWindow inherits Window {
                                     }
                                 }
                             }
-                            Text { text: root.metric-detail; color: root.muted; font-size: 12px; wrap: word-wrap; }
-                            Rectangle {
+                            HorizontalLayout {
+                                spacing: 7px;
+                                Glyph { symbol: root.metric-icon; ink: root.metric-colors[root.metric-tone]; width: 14px; height: 14px; }
+                                Text { text: root.metric-detail; color: root.muted; font-size: 12px; wrap: word-wrap; horizontal-stretch: 1; }
+                            }
+                            ChartPlot {
                                 height: 167px;
-                                border-radius: 6px;
-                                border-width: 1px;
-                                border-color: root.line;
-                                clip: true;
-                                HorizontalLayout {
-                                    padding: 10px;
-                                    spacing: 6px;
-                                    VerticalLayout {
-                                        width: 85px;
-                                        Text { text: root.axis-high; color: root.muted; font-size: 11px; }
-                                        Rectangle { vertical-stretch: 1; }
-                                        Text { text: root.axis-low; color: root.muted; font-size: 11px; }
-                                    }
-                                    Rectangle {
-                                        vertical-stretch: 1;
-                                        horizontal-stretch: 1;
-                                        for mark in [0.0, 0.5, 1.0] : Rectangle {
-                                            y: (parent.height - 1px) * mark;
-                                            height: 1px;
-                                            background: root.line;
-                                        }
-                                        if root.has-graph : Path {
-                                            width: parent.width;
-                                            height: parent.height;
-                                            commands: root.graph;
-                                            stroke: root.metric-colors[root.metric-tone];
-                                            stroke-width: 1.6px;
-                                            stroke-line-cap: round;
-                                            fill: transparent;
-                                            fit: fill;
-                                            viewbox-width: 1000;
-                                            viewbox-height: 100;
-                                        }
-                                        if !root.has-graph : Text {
-                                            width: parent.width;
-                                            height: parent.height;
-                                            text: root.metric-options.length == 0 ? @tr("No matching sensors.") : @tr("Waiting for readings…");
-                                            color: root.muted;
-                                            horizontal-alignment: center;
-                                            vertical-alignment: center;
-                                            wrap: word-wrap;
-                                        }
-                                    }
-                                }
+                                curve: root.graph;
+                                area: root.graph-area;
+                                upper: root.axis-high;
+                                lower: root.axis-low;
+                                accent: root.metric-colors[root.metric-tone];
+                                ink: root.muted;
+                                grid: root.line;
+                                has-data: root.has-graph;
+                                empty-message: root.metric-options.length == 0 ? @tr("No matching sensors.") : @tr("Waiting for readings…");
                             }
                             HorizontalLayout {
                                 Text { text: root.times[root.range-index]; color: root.muted; font-size: 12px; }
@@ -622,12 +797,14 @@ export component MainWindow inherits Window {
                         }
                         HorizontalLayout {
                             spacing: 8px;
-                            Button {
+                            ActionButton {
+                                icon: @image-url("icons/preview.svg");
                                 text: @tr("Preview report");
                                 enabled: !root.export-busy && (scope-box.current-index >= 2 || root.ready);
                                 clicked => { root.prepare-export(scope-box.current-index, format-box.current-index, root.share-safe-category, root.export-category); }
                             }
-                            Button {
+                            ActionButton {
+                                icon: @image-url("icons/save.svg");
                                 text: root.export-busy ? @tr("Saving…") : @tr("Save report…");
                                 primary: true;
                                 enabled: root.export-prepared && !root.export-busy;
@@ -656,8 +833,8 @@ export component MainWindow inherits Window {
                         }
                         if root.preview-count > 100 : HorizontalLayout {
                             spacing: 8px;
-                            Button { text: @tr("Previous"); enabled: root.preview-page > 0; clicked => { root.change-preview-page(-1); } }
-                            Button { text: @tr("Next"); enabled: (root.preview-page + 1) * 100 < root.preview-count; clicked => { root.change-preview-page(1); } }
+                            ActionButton { icon: @image-url("icons/previous.svg"); text: @tr("Previous"); enabled: root.preview-page > 0; clicked => { root.change-preview-page(-1); } }
+                            ActionButton { icon: @image-url("icons/next.svg"); text: @tr("Next"); enabled: (root.preview-page + 1) * 100 < root.preview-count; clicked => { root.change-preview-page(1); } }
                             Rectangle { horizontal-stretch: 1; }
                         }
                     }

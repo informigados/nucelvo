@@ -11,8 +11,8 @@ use windows_sys::Win32::{
     System::{
         IO::DeviceIoControl,
         Ioctl::{
-            IOCTL_STORAGE_PREDICT_FAILURE, IOCTL_STORAGE_QUERY_PROPERTY, NVMeDataTypeLogPage,
-            ProtocolTypeNvme, StorageDeviceProtocolSpecificProperty,
+            DISK_EXTENT, IOCTL_STORAGE_PREDICT_FAILURE, IOCTL_STORAGE_QUERY_PROPERTY,
+            NVMeDataTypeLogPage, ProtocolTypeNvme, StorageDeviceProtocolSpecificProperty,
         },
     },
 };
@@ -49,10 +49,11 @@ fn known_ata(model: &str) -> bool {
 }
 
 fn open_disk(index: u32) -> Result<OwnedHandle, State> {
-    let name: Vec<u16> = format!(r"\\.\PhysicalDrive{index}")
-        .encode_utf16()
-        .chain([0])
-        .collect();
+    open_device(&format!(r"\\.\PhysicalDrive{index}"))
+}
+
+fn open_device(device_path: &str) -> Result<OwnedHandle, State> {
+    let name: Vec<u16> = device_path.encode_utf16().chain([0]).collect();
     // SAFETY: name is NUL-terminated and remains live for this call. The
     // handle requests zero read/write access and can only query properties.
     let handle = unsafe {
@@ -71,6 +72,58 @@ fn open_disk(index: u32) -> Result<OwnedHandle, State> {
     }
     // SAFETY: Windows returned a new owned handle, closed by OwnedHandle.
     Ok(unsafe { OwnedHandle::from_raw_handle(handle) })
+}
+
+pub(in crate::details) fn volume_disk(volume: &str) -> Option<u32> {
+    const IOCTL_VOLUME_GET_VOLUME_DISK_EXTENTS: u32 = 0x0056_0000;
+    #[repr(C)]
+    struct Extents {
+        count: u32,
+        disks: [DISK_EXTENT; 64],
+    }
+    let [letter, b':'] = volume.as_bytes() else {
+        return None;
+    };
+    if !letter.is_ascii_alphabetic() {
+        return None;
+    }
+    let handle = open_device(&format!(r"\\.\{volume}")).ok()?;
+    let mut result = Extents {
+        count: 0,
+        disks: [DISK_EXTENT::default(); 64],
+    };
+    let mut written = 0;
+    // SAFETY: The volume was opened for read-only queries. This synchronous
+    // call writes up to the length of the live, aligned extents buffer.
+    let success = unsafe {
+        DeviceIoControl(
+            handle.as_raw_handle(),
+            IOCTL_VOLUME_GET_VOLUME_DISK_EXTENTS,
+            null(),
+            0,
+            (&raw mut result).cast(),
+            std::mem::size_of::<Extents>() as u32,
+            &mut written,
+            null_mut(),
+        )
+    };
+    let count = result.count as usize;
+    if success == 0
+        || count > result.disks.len()
+        || (written as usize)
+            < std::mem::offset_of!(Extents, disks) + count * std::mem::size_of::<DISK_EXTENT>()
+    {
+        return None;
+    }
+    single_disk(&result.disks[..count])
+}
+
+fn single_disk(extents: &[DISK_EXTENT]) -> Option<u32> {
+    let disk = extents.first()?.DiskNumber;
+    extents
+        .iter()
+        .all(|extent| extent.DiskNumber == disk)
+        .then_some(disk)
 }
 
 fn error_state() -> State {
@@ -224,6 +277,21 @@ fn decode_ata(buffer: &[u8; 4 + LOG_SIZE], known_model: bool) -> Health {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn only_associates_volume_extents_that_share_one_disk() {
+        let first = DISK_EXTENT {
+            DiskNumber: 2,
+            ..Default::default()
+        };
+        let other = DISK_EXTENT {
+            DiskNumber: 1,
+            ..Default::default()
+        };
+        assert_eq!(single_disk(&[first, first]), Some(2));
+        assert_eq!(single_disk(&[first, other]), None);
+        assert_eq!(single_disk(&[]), None);
+    }
 
     #[test]
     fn nvme_checks_layout_and_preserves_wear_above_rated_endurance() {

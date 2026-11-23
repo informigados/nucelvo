@@ -70,12 +70,16 @@ msgid "Sensor history · 15 minutes"
 msgstr "Histórico de sensores · 15 minutos"
 
 msgctxt "MainWindow"
-msgid "Navigation"
-msgstr "Navegação"
-
-msgctxt "MainWindow"
 msgid "Language"
 msgstr "Idioma"
+
+msgctxt "MainWindow"
+msgid "Light theme"
+msgstr "Tema claro"
+
+msgctxt "MainWindow"
+msgid "Dark theme"
+msgstr "Tema escuro"
 
 msgctxt "MainWindow"
 msgid "Refreshing…"
@@ -94,8 +98,8 @@ msgid "Pause"
 msgstr "Pausar"
 
 msgctxt "MainWindow"
-msgid "Could not save the language preference."
-msgstr "Não foi possível salvar a preferência de idioma."
+msgid "Could not save preferences."
+msgstr "Não foi possível salvar as preferências."
 
 msgctxt "MainWindow"
 msgid "Copied to clipboard."
@@ -264,6 +268,26 @@ msgstr "Grupo de sensores"
 msgctxt "MainWindow"
 msgid "Temperature"
 msgstr "Temperatura"
+
+msgctxt "MainWindow"
+msgid "Show chart"
+msgstr "Mostrar gráfico"
+
+msgctxt "MainWindow"
+msgid "Hide chart"
+msgstr "Ocultar gráfico"
+
+msgctxt "MainWindow"
+msgid "Storage device"
+msgstr "Unidade de armazenamento"
+
+msgctxt "MainWindow"
+msgid "About {}"
+msgstr "Sobre {}"
+
+msgctxt "MainWindow"
+msgid "Copy model"
+msgstr "Copiar modelo"
 
 msgctxt "MainWindow"
 msgid "Drive health reflects the last inventory capture. SSD wear is a manufacturer estimate."

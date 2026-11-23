@@ -7,6 +7,7 @@ use std::{
 
 pub struct Plot {
     pub path: String,
+    pub area: String,
     pub low: String,
     pub high: String,
 }
@@ -14,6 +15,7 @@ pub struct Plot {
 pub fn plot(series: &Series, now: Instant, range: Duration, pt: bool) -> Plot {
     let mut result = Plot {
         path: String::new(),
+        area: String::new(),
         low: String::new(),
         high: String::new(),
     };
@@ -37,7 +39,7 @@ pub fn plot(series: &Series, now: Instant, range: Duration, pt: bool) -> Plot {
         return result;
     };
     let (low, high) = if last.unit == "%" {
-        (0.0, 100.0)
+        (0.0, maximum.max(100.0))
     } else {
         let pad = ((maximum - minimum) * 0.12).max(0.1);
         (minimum - pad, maximum + pad)
@@ -53,13 +55,16 @@ pub fn plot(series: &Series, now: Instant, range: Duration, pt: bool) -> Plot {
     let stride = recent.len().div_ceil(250).max(1);
     let mut previous: Option<Instant> = None;
     let mut draw_line = false;
+    let mut edge = None;
     for (index, sample) in recent.iter().enumerate() {
         let Some(value) = sample.value else {
+            close_area(&mut result.area, edge.take());
             previous = None;
             draw_line = false;
             continue;
         };
         if previous.is_some_and(|seen| sample.seen.saturating_duration_since(seen) > gap) {
+            close_area(&mut result.area, edge.take());
             draw_line = false;
         }
         previous = Some(sample.seen);
@@ -71,12 +76,22 @@ pub fn plot(series: &Series, now: Instant, range: Duration, pt: bool) -> Plot {
         let y = (98.0 - 96.0 * (value - low) / (high - low)).clamp(2.0, 98.0);
         if draw_line {
             let _ = write!(result.path, " L{x:.1},{y:.1}");
+            let _ = write!(result.area, " L{x:.1},{y:.1}");
         } else {
             let _ = write!(result.path, " M{x:.1},{y:.1} h0.3");
+            let _ = write!(result.area, " M{x:.1},100 L{x:.1},{y:.1}");
         }
+        edge = Some(x);
         draw_line = true;
     }
+    close_area(&mut result.area, edge);
     result
+}
+
+fn close_area(area: &mut String, edge: Option<f64>) {
+    if let Some(edge) = edge {
+        let _ = write!(area, " L{edge:.1},100 Z");
+    }
 }
 
 #[cfg(test)]
@@ -119,6 +134,7 @@ mod tests {
         );
         assert_eq!(plot.path.matches('M').count(), 3);
         assert_eq!(plot.path.matches('L').count(), 1);
+        assert_eq!(plot.area.matches('Z').count(), 3);
         assert_eq!((plot.low.as_str(), plot.high.as_str()), ("0.0%", "100.0%"));
     }
 }

@@ -93,7 +93,8 @@ fn query(
     category: C,
     first_device: usize,
     properties: &[Property],
-) {
+) -> Vec<(u32, usize)> {
+    let mut storage_numbers = Vec::new();
     let keys = properties
         .iter()
         .map(|field| field.name)
@@ -161,6 +162,7 @@ fn query(
                     .and_then(numeric)
                     .and_then(|value| u32::try_from(value).ok())
             {
+                storage_numbers.push((number, device));
                 let text = |key| match row.get(key) {
                     Some(Variant::String(text)) => text.as_str(),
                     _ => "",
@@ -174,6 +176,7 @@ fn query(
             }
         }
     }
+    storage_numbers
 }
 
 pub fn hardware_details() -> Vec<Field> {
@@ -291,7 +294,7 @@ pub fn hardware_details() -> Vec<Field> {
             ),
         ],
     );
-    query(
+    let disks = query(
         &mut fields,
         &conn,
         "Win32_DiskDrive",
@@ -323,6 +326,7 @@ pub fn hardware_details() -> Vec<Field> {
             },
         ],
     );
+    let volumes_from = fields.len();
     query(
         &mut fields,
         &conn,
@@ -365,6 +369,20 @@ pub fn hardware_details() -> Vec<Field> {
             ),
         ],
     );
+    let associations: HashMap<_, _> = fields[volumes_from..]
+        .iter()
+        .filter_map(|field| match &field.value {
+            Some(Value::Text(path)) if field.key == "mount_point" => {
+                let disk = super::storage_health::windows::volume_disk(path)?;
+                let parent = disks.iter().find(|(number, _)| *number == disk)?.1;
+                Some((field.device, parent))
+            }
+            _ => None,
+        })
+        .collect();
+    for field in &mut fields[volumes_from..] {
+        field.storage_parent = associations.get(&field.device).copied();
+    }
     // SAFETY: GetTickCount64 takes no arguments and reads the system uptime.
     fields.push(
         Field::text(
