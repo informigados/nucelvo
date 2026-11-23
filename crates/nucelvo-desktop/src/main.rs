@@ -910,10 +910,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     monitor(&mut app.borrow_mut(), &window, true);
     let timer = Timer::default();
     let weak = window.as_weak();
-    let passed = Rc::new(Cell::new(false));
-    let result = Rc::clone(&passed);
+    let smoke_result = Rc::new(Cell::new(None));
+    let result = Rc::clone(&smoke_result);
     let mut was_minimized = false;
     timer.start(TimerMode::Repeated, Duration::from_millis(100), move || {
+        // Slint can service another timer tick before the backend exits the event loop.
+        if result.get().is_some() {
+            return;
+        }
         let Some(window) = weak.upgrade() else {
             return;
         };
@@ -1055,9 +1059,27 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         sensors.save(&dir.path().join(format!("sensors.{}", format.extension())), *format).is_ok()
                     })
             });
-            result.set(english && pt && english_restored && theme_switch && inline_cpu && sensor_link && storage_layout && uptime_note
-                && network_inventory && real && chart_visible && saved && !report.is_empty()
-                && (!require_storage || storage_readings));
+            let checks = [
+                ("language switching", english && pt && english_restored),
+                ("theme switching", theme_switch),
+                ("Overview CPU chart", inline_cpu),
+                ("GPU sensor link", sensor_link),
+                ("Storage layout", storage_layout),
+                ("uptime explanation", uptime_note),
+                ("network inventory", network_inventory),
+                ("hardware inventory", real),
+                ("Sensors chart", chart_visible),
+                ("report formats", saved && !report.is_empty()),
+                ("drive health readings", !require_storage || storage_readings),
+            ];
+            let mut passed = true;
+            for (name, ok) in checks {
+                if !ok {
+                    eprintln!("Desktop smoke check failed: {name}.");
+                    passed = false;
+                }
+            }
+            result.set(Some(passed));
             println!(
                 "Inventory, chart, localization and exports: {} ms. Logical CPUs with a valid sample: {logical}.",
                 started.elapsed().as_millis(),
@@ -1065,6 +1087,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let _ = slint::quit_event_loop();
         } else if smoke && started.elapsed() >= Duration::from_secs(25) {
             eprintln!("Desktop smoke test timed out. Logical CPUs with a valid sample: {logical}.");
+            result.set(Some(false));
             let _ = slint::quit_event_loop();
         }
     });
@@ -1081,7 +1104,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             .map_err(|_| io::Error::other("hardware worker failed"))?;
     }
     run?;
-    if smoke && !passed.get() {
+    if smoke && smoke_result.get() != Some(true) {
         return Err(io::Error::other("desktop smoke test failed").into());
     }
     Ok(())

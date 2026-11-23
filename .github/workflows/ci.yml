@@ -10,7 +10,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-2022, ubuntu-24.04]
+        os: [windows-2022, ubuntu-24.04, macos-15]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
@@ -20,7 +20,8 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libfontconfig1-dev libxkbcommon-dev libxkbcommon-x11-0 xvfb xauth weston dbus
+          sudo apt-get install -y libfontconfig1-dev libxkbcommon-dev libxkbcommon-x11-0 \
+            libx11-xcb1 libxcursor1 libxi6 xvfb xauth weston dbus
       - run: cargo fmt --all -- --check
       - name: Check the Brazilian Portuguese catalog
         if: runner.os == 'Linux'

@@ -23,6 +23,11 @@ pub(super) fn fields() -> Vec<Field> {
         linux::read(std::path::Path::new("/sys/class/power_supply")),
         "sysfs · power_supply",
     );
+    #[cfg(target_os = "macos")]
+    let (result, source) = (
+        Err::<Power, _>(io::Error::from(io::ErrorKind::Unsupported)),
+        "macOS",
+    );
     let reading = Reading::from_result(result, source);
     let power = reading.value.unwrap_or_default();
     let text = |device, key, labels, value: Option<&str>| {

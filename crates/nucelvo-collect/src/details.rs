@@ -2,6 +2,8 @@ use chrono::Utc;
 use nucelvo_core::{Category as C, Field, Reading, Sample, Snapshot, State};
 use std::time::Instant;
 
+#[cfg(target_os = "macos")]
+use super::platform as native;
 #[cfg(windows)]
 #[path = "displays_windows.rs"]
 mod displays;
@@ -11,10 +13,12 @@ mod native;
 #[cfg(windows)]
 #[path = "details_windows.rs"]
 mod native;
+#[cfg(any(windows, target_os = "linux"))]
 #[path = "network.rs"]
 mod network;
 #[path = "power.rs"]
 mod power;
+#[cfg(any(windows, target_os = "linux"))]
 #[path = "storage_health.rs"]
 mod storage_health;
 
@@ -80,6 +84,7 @@ pub fn base_snapshot() -> Snapshot {
 pub fn hardware_details() -> Vec<Field> {
     let mut fields = native::hardware_details();
     fields.extend(power::fields());
+    #[cfg(any(windows, target_os = "linux"))]
     fields.extend(network::fields());
     #[cfg(windows)]
     fields.extend(displays::fields());
@@ -98,6 +103,9 @@ pub struct NativeSensors {
 
 impl NativeSensors {
     pub fn sample(&self) -> Vec<Sample> {
+        #[cfg(target_os = "macos")]
+        let samples = unavailable_sensor("macOS", State::Unsupported);
+        #[cfg(any(windows, target_os = "linux"))]
         let samples = native::sensors();
         #[cfg(windows)]
         if let Some(nvidia) = &self.nvidia {
@@ -117,7 +125,11 @@ impl Default for NativeSensors {
 }
 
 pub fn memory_sample() -> Sample {
-    let reading = Reading::from_result(native::memory_load(), super::platform::MEMORY_SOURCE);
+    #[cfg(target_os = "macos")]
+    let source = native::MEMORY_LOAD_SOURCE;
+    #[cfg(not(target_os = "macos"))]
+    let source = super::platform::MEMORY_SOURCE;
+    let reading = Reading::from_result(native::memory_load(), source);
     sample(
         "memory:load".into(),
         "Memory usage".into(),

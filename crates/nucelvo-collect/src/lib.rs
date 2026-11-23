@@ -12,6 +12,9 @@ mod logical_windows;
 #[cfg(target_os = "linux")]
 #[path = "linux.rs"]
 mod platform;
+#[cfg(target_os = "macos")]
+#[path = "macos.rs"]
+mod platform;
 #[cfg(target_os = "windows")]
 #[path = "windows.rs"]
 mod platform;
@@ -40,7 +43,7 @@ pub struct CpuSampler {
     previous: Option<CpuTicks>,
     #[cfg(windows)]
     logical: logical_windows::LogicalSampler,
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
     previous_logical: std::collections::BTreeMap<u32, CpuTicks>,
 }
 
@@ -73,7 +76,7 @@ impl CpuSampler {
         }
     }
 
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
     pub fn logical_samples(&mut self) -> Vec<nucelvo_core::Sample> {
         let previous = std::mem::take(&mut self.previous_logical);
         let emit = |logical, reading: Reading<f64>| nucelvo_core::Sample {

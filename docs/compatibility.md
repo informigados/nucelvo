@@ -3,7 +3,9 @@
 | Platform | Preview status |
 | --- | --- |
 | Windows 11 x64 | Tested on physical hardware with a standard user account |
-| Ubuntu 24.04 LTS x86_64 | Linux target with passing cross-checks. Native Ubuntu compatibility has yet to be verified. |
+| Windows 10 22H2 x64 | Compatibility testing pending. |
+| Ubuntu 24.04 LTS x86_64 | Source build tested in a VM under X11 and Wayland, including language and theme changes, charts, export formats, and virtual Ethernet. Physical hardware and distribution packages remain pending. |
+| macOS on Apple Silicon | Initial OS, CPU, and memory collector cross-check passed. Desktop build, native runtime validation, and packaging remain pending. |
 
 Nucelvo reads system, CPU, memory, motherboard, graphics, and storage information through the operating system. It monitors CPU and memory usage and shows additional sensor readings when the system exposes them. Hardware, firmware, drivers, and permissions determine which readings are available.
 
@@ -26,5 +28,7 @@ The **Storage** screen records health readings when inventory is captured. Power
 Windows health readings were verified on the WD Black SN750 SE NVMe and the Seagate ST1000DX002-2DV162 and Toshiba MK5065GSX SATA hard drives. ATA hours, temperature, and sector counts on Windows use model-specific decoding for those two SATA models. Other ATA models may expose a failure alert, and unsupported or restricted drives show unavailable readings. USB bridges and RAID controllers may hide health data.
 
 On Linux, the application uses `smartctl` in common system locations when present. Linux health readings require OS access to the drive. A sleeping drive may omit readings. The helper is supplied separately by the system.
+
+The initial macOS collector reads the OS version and build, model, uptime, total and per-logical CPU usage, and memory usage. Hardware coverage for graphics, storage, networking, power, and temperature requires additional validation and platform providers.
 
 The **Sensors** screen shows the state of each reading. A gap in the chart indicates a period without readings. Report formats and source-build instructions are listed in the [README](../README.md).

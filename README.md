@@ -34,7 +34,8 @@ Install [Rust with rustup](https://rustup.rs/). This project pins its toolchain 
 
 ```sh
 sudo apt-get update
-sudo apt-get install build-essential pkg-config libfontconfig1-dev libxkbcommon-dev libxkbcommon-x11-0
+sudo apt-get install build-essential pkg-config libfontconfig1-dev libxkbcommon-dev \
+  libxkbcommon-x11-0 libx11-xcb1 libxcursor1 libxi6
 ```
 
 The Linux file chooser uses the desktop portal, with Zenity as a fallback. Install `zenity` if your desktop lacks a file chooser portal and `xdg-utils` to use **Open folder**.
