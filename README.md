@@ -7,6 +7,10 @@
 
 **See what's inside your PC and how it's running.** Nucelvo is a free, open-source desktop app for hardware inventory, live sensor monitoring, and diagnostic reports. Core monitoring works offline and requires no account.
 
+[![Rust](docs/assets/rust.svg)](Cargo.toml)
+[![License: Apache 2.0](docs/assets/license.svg)](LICENSE)
+[![DeepWiki](docs/assets/deepwiki.svg)](https://deepwiki.com/informigados/nucelvo)
+
 [Download for Windows](#-download-for-windows) · [Run from source](#-run-from-source) · [Contribute](#-contribute) · [Ask a question](https://github.com/informigados/nucelvo/discussions)
 
 **Preview availability:** Windows 11 x64 installer and portable ZIP. Ubuntu 24.04 source builds were tested under X11 and Wayland. See [platform and sensor coverage](docs/compatibility.md).
