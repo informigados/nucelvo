@@ -5,6 +5,37 @@ export component ActionButton inherits Button {
     colorize-icon: true;
 }
 
+export component CopyButton inherits ActionButton {
+    in property <string> copy-value;
+    in property <string> label;
+    in property <string> copy-accessible-label: root.label;
+    in property <string> copied-label;
+    in property <string> failed-label;
+    callback write-clipboard(string) -> bool;
+    private property <string> last-value;
+    private property <int> feedback;
+    private property <int> visible-feedback: root.copy-value == root.last-value ? root.feedback : 0;
+
+    icon: @image-url("icons/copy.svg");
+    text: root.visible-feedback == 1 ? root.copied-label : root.visible-feedback == 2 ? root.failed-label : root.label;
+    accessible-label: root.visible-feedback == 0 ? root.copy-accessible-label : root.copy-accessible-label + " · " + root.text;
+    clicked => {
+        root.last-value = root.copy-value;
+        root.feedback = root.write-clipboard(root.copy-value) ? 1 : 2;
+        feedback-timer.start();
+        feedback-timer.restart();
+    }
+
+    feedback-timer := Timer {
+        interval: 2s;
+        running: false;
+        triggered => {
+            root.feedback = 0;
+            self.stop();
+        }
+    }
+}
+
 export component ThemeOption inherits Rectangle {
     in property <string> label;
     in property <image> icon;

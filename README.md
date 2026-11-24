@@ -11,17 +11,17 @@ Free, open-source hardware inventory and live sensor monitoring for Windows and 
 
 ## ⬇️ Download for Windows
 
-The [GitHub release](https://github.com/informigados/nucelvo/releases/tag/v0.7.1) includes a Windows x64 installer, a portable ZIP, and SHA-256 checksums. The installer runs for the current user. To use the portable edition, extract the ZIP and open `nucelvo.exe`.
+The [GitHub release](https://github.com/informigados/nucelvo/releases/tag/v0.7.2) includes a Windows x64 installer, a portable ZIP, and SHA-256 checksums. The installer runs for the current user. To use the portable edition, extract the ZIP and open `nucelvo.exe`.
 
 ### 🔍 Verify the Windows installer
 
-Download the installer from the [official GitHub release](https://github.com/informigados/nucelvo/releases/tag/v0.7.1). In PowerShell, run this command from the download folder and compare the output with `SHA256SUMS` attached to the release.
+Download the installer from the [official GitHub release](https://github.com/informigados/nucelvo/releases/tag/v0.7.2). In PowerShell, run this command from the download folder and compare the output with `SHA256SUMS` attached to the release.
 
 ```powershell
-Get-FileHash .\nucelvo-0.7.1-windows-x64-setup.exe -Algorithm SHA256
+Get-FileHash .\nucelvo-0.7.2-windows-x64-setup.exe -Algorithm SHA256
 ```
 
-For the **0.7.1 Windows x64 installer**, the published SHA-256 is `609abee271e4df8f9aab031c054b3a9f927f5e2079497aa31e346a3188a60f1b`.
+For the **0.7.2 Windows x64 installer**, the published SHA-256 is `a9830f0acc67c840baaf14f467dbf2aed25b623cfccf3d1a617b4420db27ef3d`.
 
 ### Microsoft Defender SmartScreen
 

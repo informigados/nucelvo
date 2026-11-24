@@ -1,6 +1,6 @@
 ﻿import { CheckBox, ComboBox, LineEdit, ListView, Palette, ScrollView } from "std-widgets.slint";
 
-import { ActionButton, AuthorCard, ChartPlot, Glyph, ThemeOption } from "visuals.slint";
+import { ActionButton, AuthorCard, ChartPlot, CopyButton, Glyph, ThemeOption } from "visuals.slint";
 
 export struct Row {
     label: string,
@@ -240,7 +240,7 @@ export component MainWindow inherits Window {
     callback refresh();
     callback search(string);
     callback storage-selected(int);
-    callback copy(string);
+    callback copy(string) -> bool;
     callback pause();
     callback metric(int);
     callback range-changed(int);
@@ -422,8 +422,6 @@ export component MainWindow inherits Window {
                             wrap: word-wrap;
                             color: root.ink;
                             text: root.save-failed ? @tr("Could not save preferences.") :
-                                root.notice == 1 ? @tr("Copied to clipboard.") :
-                                root.notice == 2 ? @tr("Could not access the clipboard.") :
                                 root.notice == 3 ? @tr("Report saved · {}", root.notice-detail) :
                                 root.notice == 4 ? @tr("That file already exists. Choose another name.") :
                                 root.notice == 5 ? @tr("Could not save the report. Choose another location or try again.") :
@@ -588,10 +586,13 @@ export component MainWindow inherits Window {
                                         overflow: elide;
                                         horizontal-stretch: 1;
                                     }
-                                    if item.group-model != "" : ActionButton {
-                                        icon: @image-url("icons/copy.svg");
-                                        text: @tr("Copy model");
-                                        clicked => { root.copy(item.group-model); }
+                                    if item.group-model != "" : CopyButton {
+                                        min-width: 132px;
+                                        label: @tr("Copy model");
+                                        copied-label: @tr("Copied!");
+                                        failed-label: @tr("Copy failed");
+                                        copy-value: item.group-model;
+                                        write-clipboard(value) => { return root.copy(value); }
                                     }
                                 }
                                 if item.subgroup-start : Rectangle {
@@ -645,12 +646,15 @@ export component MainWindow inherits Window {
                                     }
                                     VerticalLayout {
                                         alignment: center;
-                                        ActionButton {
-                                            icon: @image-url("icons/copy.svg");
-                                            text: @tr("Copy");
-                                            accessible-label: @tr("Copy {}", item.label);
+                                        CopyButton {
+                                            min-width: 105px;
+                                            label: @tr("Copy");
+                                            copy-accessible-label: @tr("Copy {}", item.label);
+                                            copied-label: @tr("Copied!");
+                                            failed-label: @tr("Copy failed");
+                                            copy-value: item.value;
                                             enabled: item.copyable;
-                                            clicked => { root.copy(item.value); }
+                                            write-clipboard(value) => { return root.copy(value); }
                                         }
                                     }
                                 }

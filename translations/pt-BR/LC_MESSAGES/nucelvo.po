@@ -102,12 +102,12 @@ msgid "Could not save preferences."
 msgstr "Não foi possível salvar as preferências."
 
 msgctxt "MainWindow"
-msgid "Copied to clipboard."
-msgstr "Copiado para a área de transferência."
+msgid "Copied!"
+msgstr "Copiado!"
 
 msgctxt "MainWindow"
-msgid "Could not access the clipboard."
-msgstr "Não foi possível acessar a área de transferência."
+msgid "Copy failed"
+msgstr "Falha ao copiar"
 
 msgctxt "MainWindow"
 msgid "Report saved · {}"

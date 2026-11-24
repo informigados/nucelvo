@@ -17,6 +17,24 @@ to `makensis.exe`. Keep the NSIS distribution's `COPYING` file beside it.
 The script builds the application in release mode with the static MSVC runtime,
 runs a desktop smoke test and verifies the contents of the portable ZIP.
 
+## Authenticode signing
+
+To build signed packages, use a trusted code-signing certificate in the current
+user's Personal certificate store and its provider's HTTPS RFC 3161 timestamp
+endpoint. Set `$thumbprint` and `$timestampUrl` to those values before running
+the command below. Run from a Windows SDK developer prompt or pass the path
+to SignTool with `--signtool`.
+
+```powershell
+python scripts/package-windows.py --signing-thumbprint $thumbprint --timestamp-url $timestampUrl
+```
+
+The script signs and verifies the application executable before it packages
+it, then signs and verifies the setup executable. It uses SHA-256 for both
+signing and timestamping and generates checksums after signing. A signing or
+verification failure stops the build before it replaces the output packages.
+[Microsoft SignTool documentation](https://learn.microsoft.com/en-us/windows/win32/seccrypto/signtool)
+
 ## Install and remove
 
 Open the setup executable and follow the English or Brazilian Portuguese

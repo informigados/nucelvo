@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.2 · Clipboard Feedback Preview
+
+- Shows copy confirmation on the selected button for two seconds in English and Brazilian Portuguese, then restores the original label.
+- Adds optional Authenticode signing for Windows builds. The packaging script verifies both signatures before creating release checksums.
+
 ## 0.7.1 · Windows Update Preview
 
 - Adds an opt-in update flow in About for installed Windows x64 copies. Nucelvo downloads the official setup, checks the exact size and SHA-256, and opens it through Windows Attachment Manager after confirmation.

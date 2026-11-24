@@ -547,21 +547,15 @@ fn bind(
             inventory(&mut app, &window);
         }
     });
-    let weak = window.as_weak();
     let data = Rc::clone(app);
     window.on_copy(move |value| {
-        let Some(window) = weak.upgrade() else {
-            return;
-        };
         let mut app = data.borrow_mut();
         if app.clipboard.is_none() {
             app.clipboard = arboard::Clipboard::new().ok();
         }
-        let copied = app
-            .clipboard
+        app.clipboard
             .as_mut()
-            .is_some_and(|clipboard| clipboard.set_text(value.to_string()).is_ok());
-        window.set_notice(if copied { 1 } else { 2 });
+            .is_some_and(|clipboard| clipboard.set_text(value.to_string()).is_ok())
     });
     let weak = window.as_weak();
     let data = Rc::clone(app);
