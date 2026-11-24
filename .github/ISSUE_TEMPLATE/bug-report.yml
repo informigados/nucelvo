@@ -1,0 +1,33 @@
+name: Bug report
+description: Report incorrect readings, unexpected behavior, or crashes.
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Search the existing issues before posting. For suspected vulnerabilities, follow the [security policy](https://github.com/informigados/nucelvo/blob/main/SECURITY.md).
+  - type: input
+    id: environment
+    attributes:
+      label: App version and operating system
+      placeholder: Nucelvo 0.7.2, Windows 11 x64, installed edition
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Include the screen or sensor and the relevant hardware model or driver version, if known.
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Actual and expected behavior
+      description: Describe what happened and what you expected to happen.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Optional evidence
+      description: Review screenshots before posting. If you attach an export, use Share-safe and check its contents for identifying information.

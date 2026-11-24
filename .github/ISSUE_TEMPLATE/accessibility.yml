@@ -1,0 +1,21 @@
+name: Accessibility barrier
+description: Report a problem with keyboard access, assistive technology, or readability.
+body:
+  - type: input
+    id: environment
+    attributes:
+      label: App version and operating system
+    validations:
+      required: true
+  - type: textarea
+    id: barrier
+    attributes:
+      label: What prevented you from completing the task?
+      description: Include the screen, the steps you took, and what you expected to happen.
+    validations:
+      required: true
+  - type: textarea
+    id: setup
+    attributes:
+      label: Accessibility setup
+      description: If relevant, include your input method, assistive technology and version, display scale, or theme.

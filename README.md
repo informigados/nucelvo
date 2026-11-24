@@ -69,6 +69,8 @@ cargo run --locked
 | [Compatibility](docs/compatibility.md) | Platform support and hardware coverage |
 | [Changelog](CHANGELOG.md) | Changes by release |
 | [Contributing](CONTRIBUTING.md) | Development checks, bug reports, and pull requests |
+| [Code of conduct](CODE_OF_CONDUCT.md) | Community behavior and moderation |
+| [Accessibility](ACCESSIBILITY.md) | Supported workflows and how to report barriers |
 | [Security policy](SECURITY.md) | How to report a vulnerability privately |
 | [Translations](translations/README.md) | Updating and reviewing language catalogs |
 
