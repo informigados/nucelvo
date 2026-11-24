@@ -87,9 +87,13 @@ If Nucelvo helps you, star the repository so you can find it again.
 | [Security policy](SECURITY.md) | How to report a vulnerability privately |
 | [Translations](translations/README.md) | Updating and reviewing language catalogs |
 
-## 📄 License and credits
+## 👥 Authors
 
-Built by **INformigados** and **Alex Brito**.
+- [Alex Brito](https://github.com/alexbritodev)
+- [INformigados](https://github.com/informigados)
+
+<a id="-license-and-credits"></a>
+## 📄 License
 
 Nucelvo’s source code is licensed under [Apache 2.0](LICENSE). The desktop interface uses Slint under its Royalty-free License 2.0. See the [third-party notices](THIRD_PARTY_NOTICES.md) and [brand assets](assets/brand/README.md).
 
