@@ -2,6 +2,10 @@
 
 ## 🚀 Getting started
 
+Start with the [good first issues](https://github.com/informigados/nucelvo/contribute). Each starter issue describes the expected change and how to check it. If you would like to work on one, leave a comment there so other contributors can coordinate with you.
+
+For code or documentation changes, [fork the repository](https://github.com/informigados/nucelvo/fork) and create a branch from `main`.
+
 Follow the [build instructions](README.md#-run-from-source) and review the [compatibility notes](docs/compatibility.md) before working on hardware support. Please use English in issues, pull requests, and code comments. For language changes, see the [translation guide](translations/README.md).
 
 Follow the [code of conduct](CODE_OF_CONDUCT.md) when participating in the project.
@@ -11,6 +15,8 @@ Follow the [code of conduct](CODE_OF_CONDUCT.md) when participating in the proje
 Use the [issue chooser](https://github.com/informigados/nucelvo/issues/new/choose) to report a bug, suggest a feature, or report an accessibility barrier. Include the operating system and version, hardware model if relevant, steps to reproduce the issue, and what you expected to see. If you attach a report, use **Share-safe** and review its contents before posting.
 
 For suspected vulnerabilities, follow the [security policy](SECURITY.md).
+
+For questions or compatibility feedback, use [GitHub Discussions](https://github.com/informigados/nucelvo/discussions).
 
 ## 🧪 Checking a change
 

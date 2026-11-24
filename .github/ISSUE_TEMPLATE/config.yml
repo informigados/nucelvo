@@ -1,5 +1,8 @@
 blank_issues_enabled: true
 contact_links:
+  - name: Ask a question or share compatibility feedback
+    url: https://github.com/informigados/nucelvo/discussions
+    about: Discuss setup, hardware coverage, and using Nucelvo.
   - name: Report a security vulnerability
     url: https://github.com/informigados/nucelvo/blob/main/SECURITY.md
     about: Read the instructions for reporting a suspected vulnerability privately.
