@@ -11,7 +11,7 @@
 
 **Preview availability:** Windows 11 x64 installer and portable ZIP. Ubuntu 24.04 source builds were tested under X11 and Wayland. See [platform and sensor coverage](docs/compatibility.md).
 
-## ⬇️ Download for Windows
+## 📥 Download for Windows
 
 [Windows x64 installer](https://github.com/informigados/nucelvo/releases/download/v0.7.2/nucelvo-0.7.2-windows-x64-setup.exe) · [Portable ZIP](https://github.com/informigados/nucelvo/releases/download/v0.7.2/nucelvo-0.7.2-windows-x64-portable.zip) · [Release notes](https://github.com/informigados/nucelvo/releases/tag/v0.7.2)
 
